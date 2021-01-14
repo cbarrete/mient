@@ -10,7 +10,10 @@ In `~/.config/mient/config.json`
 }
 ```
 
-Change the `device_id`, just make one up, it will later be handled automatically.
+Change the `device_id`, just make one up, it will one day be handled automatically.
+
+Also the default room is hardcoded in `src/app.rs`, something might go wrong if
+it isn't changed.
 
 # TODO
 
@@ -19,6 +22,7 @@ Change the `device_id`, just make one up, it will later be handled automatically
 - Respond to room key requests
 - Device verification
 - Much better message handling, probably with a VecDeque for easy backfilling
+- Look into other TUI frameworks, especially https://github.com/Gyscos/Cursive
 - Custom message room widget
   - Nice colors
   - Timestamps
