@@ -18,7 +18,7 @@ impl Message {
         Self {
             sender,
             content,
-            ts
+            ts,
         }
     }
 }
@@ -49,7 +49,6 @@ pub struct State {
     pub current_room_id: Option<RoomId>,
     pub users: HashMap<UserId, String>,
     pub rooms: Vec<(RoomId, Box<Room>)>,
-    pub debug_messages: Vec<String>,
 }
 
 impl State {
@@ -59,7 +58,6 @@ impl State {
             current_room_id: Some(RoomId::try_from(current_room_id).unwrap()),
             users: HashMap::new(),
             rooms: Vec::new(),
-            debug_messages: Vec::new(),
         }
     }
 
@@ -102,14 +100,20 @@ impl State {
         let joined_rooms = joined_rooms.read().await;
         for (room_id, room) in joined_rooms.iter() {
             let room_ref = room.read().await;
-            let mut room = Room::new(room_ref.display_name(), room_ref.unread_notifications.unwrap_or_default());
+            let mut room = Room::new(
+                room_ref.display_name(),
+                room_ref.unread_notifications.unwrap_or_default(),
+            );
             for event in room_ref.messages.iter() {
-                if let matrix_sdk::events::AnyPossiblyRedactedSyncMessageEvent::Regular(msg) = event {
+                if let matrix_sdk::events::AnyPossiblyRedactedSyncMessageEvent::Regular(msg) = event
+                {
                     // dropping non text messages for now
                     if let matrix_sdk::events::AnySyncMessageEvent::RoomMessage(msg_event) = msg {
-                        room.add_message(Message::new(msg.sender().clone(),
-                                                      msg_event.content.clone(),
-                                                      msg.origin_server_ts().clone()));
+                        room.add_message(Message::new(
+                            msg.sender().clone(),
+                            msg_event.content.clone(),
+                            msg.origin_server_ts().clone(),
+                        ));
                     }
                 }
             }
@@ -119,16 +123,15 @@ impl State {
 
     pub fn change_current_room(&mut self, increment: i8) {
         let current_position = if let Some(current_id) = &self.current_room_id {
-            self.rooms
-                .iter()
-                .position(|(id, _)| &*id == current_id)
+            self.rooms.iter().position(|(id, _)| &*id == current_id)
         } else {
             None
         };
         let new_position = current_position
             .map(|p| (p as i8 + increment).rem_euclid(self.rooms.len() as i8))
             .unwrap_or(0);
-        self.current_room_id = self.rooms
+        self.current_room_id = self
+            .rooms
             .get(new_position as usize)
             .map(|(id, _)| id.clone());
     }

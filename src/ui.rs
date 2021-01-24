@@ -13,13 +13,12 @@ use tui::{
 };
 use unicode_width::UnicodeWidthStr;
 
-use crate::state::State;
 use crate::state::Message;
 use crate::state::Room;
+use crate::state::State;
 
 struct MientLayout {
     rooms_region: Rect,
-    debug_region: Rect,
     messages_region: Rect,
     input_region: Rect,
 }
@@ -32,19 +31,13 @@ fn make_layout(terminal_size: Rect) -> MientLayout {
 
     let right_layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(5),
-            Constraint::Min(1),
-            Constraint::Length(1),
-        ])
+        .constraints([Constraint::Min(1), Constraint::Length(1)])
         .split(main_layout[1]);
-
 
     MientLayout {
         rooms_region: main_layout[0],
-        debug_region: right_layout[0],
-        messages_region: right_layout[1],
-        input_region: right_layout[2],
+        messages_region: right_layout[0],
+        input_region: right_layout[1],
     }
 }
 
@@ -56,7 +49,9 @@ fn format_message(message: &Message, users: &HashMap<UserId, String>) -> String 
         message.sender.localpart()
     };
     let body = match &message.content {
-        matrix_sdk::events::room::message::MessageEventContent::Text(content) => content.body.clone(),
+        matrix_sdk::events::room::message::MessageEventContent::Text(content) => {
+            content.body.clone()
+        }
         other => format!("{:?}", other),
     };
     format!("{}: {}", sender, body)
@@ -91,15 +86,6 @@ pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::i
         room_list_state.select(selected);
         f.render_stateful_widget(room_list, layout.rooms_region, &mut room_list_state);
 
-        let debug_messages: Vec<ListItem> = state.debug_messages
-            .iter()
-            .rev()
-            .map(|m| ListItem::new(m.clone()))
-            .collect();
-        let debug_message_list = List::new(debug_messages).block(Block::default().borders(Borders::BOTTOM));
-        f.render_widget(debug_message_list, layout.debug_region);
-
-
         let messages: Vec<ListItem> = state
             .get_current_room()
             .map(|room| &room.messages)
@@ -107,7 +93,11 @@ pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::i
             .iter()
             .map(|message| ListItem::new(format_message(message, &state.users)))
             .collect();
-        let index = if messages.len() > 0 { messages.len() - 1 } else { 0 };
+        let index = if messages.len() > 0 {
+            messages.len() - 1
+        } else {
+            0
+        };
         let message_list = List::new(messages).block(Block::default().borders(Borders::BOTTOM));
         room_list_state.select(Some(index));
         f.render_stateful_widget(message_list, layout.messages_region, &mut room_list_state);
