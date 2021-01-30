@@ -58,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         ["--verify", device] => {
-            // TODO not working yet
             login(&mient_config, &mut client).await?;
             let device = match client
                 .get_device(&client.user_id().await.unwrap(), device.into())
@@ -134,7 +133,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     .await
                                     .unwrap();
                                 if sas.is_done() {
-                                    println!("Done!");
+                                    println!("Done! Feel free to terminate the program, the following events aren't handled yet");
                                 // return matrix_sdk::LoopCtrl::Break;
                                 } else {
                                     println!("notdone..?");

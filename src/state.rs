@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::time::SystemTime;
 
 use matrix_sdk::events::room::message::MessageEventContent;
@@ -69,6 +68,7 @@ impl State {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_current_room_mut(&mut self) -> Option<&mut Room> {
         if let Some(id) = self.current_room_id.clone() {
             self.get_room_mut(&id)

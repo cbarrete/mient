@@ -19,34 +19,13 @@ pub async fn cross_sign(
             client
                 .bootstrap_cross_signing(Some(auth_data))
                 .await
-                .expect("Couldn't bootstrap cross signing")
+                .unwrap()
         } else {
             panic!("Error durign cross signing bootstrap {:#?}", e);
         }
     }
 
     Ok(())
-
-    // let devices = client.get_user_devices(&login.user_id).await.unwrap();
-    // for device in devices.devices() {
-    //     // device.set_local_trust(matrix_sdk::LocalTrust::Verified).await?;
-    //     println!("{:?}", device);
-    // }
-
-    // let device = client.get_device(dbg!(&login.user_id), dbg!(&login.device_id))
-    //     .await
-    //     .unwrap()
-    //     .unwrap();
-
-    // println!("is trusted {}", device.is_trusted());
-
-    // let verification = device.start_verification().await.unwrap();
-
-    // println!("decimals: {:?}", verification.decimals().unwrap());
-
-    // println!("is trusted {}", device.is_trusted());
-
-    // return Ok(());
 }
 
 fn auth_data<'a>(user: &UserId, password: &str, session: Option<&'a str>) -> AuthData<'a> {
