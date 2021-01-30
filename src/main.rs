@@ -102,12 +102,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     .unwrap();
                             }
                             AnyToDeviceEvent::KeyVerificationKey(e) => {
-                                std::thread::sleep(std::time::Duration::from_millis(2000));
                                 let sas = client
                                     .get_verification(&e.content.transaction_id)
                                     .await
                                     .unwrap();
-                                std::thread::sleep(std::time::Duration::from_millis(2000));
                                 println!("Emojis: {:?}", sas.emoji());
                                 println!("Decimals: {:?}", sas.decimals());
                                 println!("Do they match? (type yes if so) ");
@@ -143,20 +141,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                             AnyToDeviceEvent::KeyVerificationAccept(e) => {
                                 println!("Accept");
-                                std::thread::sleep(std::time::Duration::from_millis(2000));
                                 let sas = client
                                     .get_verification(&e.content.transaction_id)
                                     .await
                                     .unwrap();
-                                std::thread::sleep(std::time::Duration::from_millis(2000));
-                                println!("asdfasdf");
                                 sas.accept().await.unwrap();
-                                std::thread::sleep(std::time::Duration::from_millis(2000));
                             }
-                            // AnyToDeviceEvent::KeyVerificationCancel(e) => {
-                            //     println!("They cancelled: {}", e.content.reason);
-                            //     return matrix_sdk::LoopCtrl::Break;
-                            // }
+                            AnyToDeviceEvent::KeyVerificationCancel(e) => {
+                                println!("They cancelled: {}", e.content.reason);
+                                return matrix_sdk::LoopCtrl::Break;
+                            }
                             e => {
                                 dbg!(e);
                             }
