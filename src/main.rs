@@ -75,6 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 return Ok(());
             }
 
+            println!("Starting verification...");
             let sas = device.start_verification().await?;
 
             client
@@ -134,7 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     .unwrap();
                                 if sas.is_done() {
                                     println!("Done!");
-                                    return matrix_sdk::LoopCtrl::Break;
+                                // return matrix_sdk::LoopCtrl::Break;
                                 } else {
                                     println!("notdone..?");
                                 }
