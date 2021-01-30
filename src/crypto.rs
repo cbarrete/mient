@@ -5,10 +5,17 @@ use std::collections::BTreeMap;
 
 use crate::config::MientConfig;
 
-pub async fn cross_sign(mient_config: MientConfig, client: matrix_sdk::Client) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn cross_sign(
+    mient_config: MientConfig,
+    client: matrix_sdk::Client,
+) -> Result<(), Box<dyn std::error::Error>> {
     if let Err(e) = client.bootstrap_cross_signing(None).await {
         if let Some(response) = e.uiaa_response() {
-            let auth_data = auth_data(&client.user_id().await.unwrap(), &mient_config.password, response.session.as_deref());
+            let auth_data = auth_data(
+                &client.user_id().await.unwrap(),
+                &mient_config.password,
+                response.session.as_deref(),
+            );
             client
                 .bootstrap_cross_signing(Some(auth_data))
                 .await
@@ -25,7 +32,6 @@ pub async fn cross_sign(mient_config: MientConfig, client: matrix_sdk::Client) -
     //     // device.set_local_trust(matrix_sdk::LocalTrust::Verified).await?;
     //     println!("{:?}", device);
     // }
-
 
     // let device = client.get_device(dbg!(&login.user_id), dbg!(&login.device_id))
     //     .await

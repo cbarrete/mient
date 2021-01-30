@@ -41,7 +41,9 @@ impl MientConfig {
 
     fn make(user_config: UserConfig) -> Result<Self, Box<dyn std::error::Error>> {
         if user_config.password_cmd.len() < 1 {
-            return Err(Box::new(MientConfigError { message: String::from("Invalid password command") }));
+            return Err(Box::new(MientConfigError {
+                message: String::from("Invalid password command"),
+            }));
         }
         let password = std::process::Command::new(&user_config.password_cmd[0])
             .args(&user_config.password_cmd[1..])

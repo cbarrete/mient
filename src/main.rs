@@ -2,12 +2,12 @@ use matrix_sdk::events::AnyToDeviceEvent;
 
 mod app;
 mod config;
+mod crypto;
 mod events;
 mod log;
 mod matrix;
 mod state;
 mod ui;
-mod crypto;
 
 use config::MientConfig;
 
@@ -15,10 +15,11 @@ use config::MientConfig;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // tracing_subscriber::fmt::init();
     let home = std::env::var("HOME")?;
-    let mient_config = config::MientConfig::get(&format!("{}/{}", &home, ".config/mient/config.json"))?;
+    let mient_config =
+        config::MientConfig::get(&format!("{}/{}", &home, ".config/mient/config.json"))?;
 
-    let client_config = matrix_sdk::ClientConfig::new()
-        .store_path(&format!("{}/{}", home, "store"));
+    let client_config =
+        matrix_sdk::ClientConfig::new().store_path(&format!("{}/{}", home, "store"));
     let homeserver_url = url::Url::parse(&mient_config.homeserver)
         .expect("Couldn't parse the homeserver URL, you might have forgotten to prefix https://");
     let mut client = matrix_sdk::Client::new_with_config(homeserver_url, client_config)?;
@@ -35,7 +36,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         ["--import-keys", path, password] => {
             login(&mient_config, &mut client).await?;
-            client.import_keys(path.into(), password).await.map(|_| ())?
+            client
+                .import_keys(path.into(), password)
+                .await
+                .map(|_| ())?
         }
         ["--export-keys", path, password] => {
             login(&mient_config, &mut client).await?;
@@ -45,102 +49,122 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             login(&mient_config, &mut client).await?;
             let user_id = client.user_id().await.unwrap();
             for device in client.get_user_devices(&user_id).await?.devices() {
-                println!("Device: {}, Trust: {:?}, Name: {}",
-                         device.device_id(),
-                         device.local_trust_state(),
-                         device.display_name().as_deref().unwrap_or(""));
+                println!(
+                    "Device: {}, Trust: {:?}, Name: {}",
+                    device.device_id(),
+                    device.local_trust_state(),
+                    device.display_name().as_deref().unwrap_or("")
+                );
             }
         }
         ["--verify", device] => {
             // TODO not working yet
             login(&mient_config, &mut client).await?;
-            let device = match client.get_device(&client.user_id().await.unwrap(), device.into()).await? {
+            let device = match client
+                .get_device(&client.user_id().await.unwrap(), device.into())
+                .await?
+            {
                 None => {
                     eprintln!("Device not found");
-                    return Ok(()) // TODO should be an Err...
+                    return Ok(()); // TODO should be an Err...
                 }
                 Some(d) => d,
             };
             if device.is_trusted() {
                 println!("This device is already trusted");
-                return Ok(())
+                return Ok(());
             }
 
             let sas = device.start_verification().await?;
 
-            client.sync_once(matrix_sdk::SyncSettings::new().full_state(true)).await?;
+            client
+                .sync_once(matrix_sdk::SyncSettings::new().full_state(true))
+                .await?;
             let client = &client;
-            client.sync_with_callback(matrix_sdk::SyncSettings::new(), |response| async move {
-                for event in response.to_device.events.iter().filter_map(|e| e.deserialize().ok()) {
-                    dbg!(&event);
-                    match event {
-                        AnyToDeviceEvent::KeyVerificationStart(e) => {
-                            println!("Starting verification");
-                            client.get_verification(&e.content.transaction_id)
-                                .await
-                                .unwrap()
-                                .accept()
-                                .await
-                                .unwrap();
-                        }
-                        AnyToDeviceEvent::KeyVerificationKey(e) => {
-                            std::thread::sleep(std::time::Duration::from_millis(2000));
-                            let sas = client.get_verification(&e.content.transaction_id)
-                                .await
-                                .unwrap();
-                            std::thread::sleep(std::time::Duration::from_millis(2000));
-                            println!("Emojis: {:?}", sas.emoji());
-                            println!("Decimals: {:?}", sas.decimals());
-                            println!("Do they match? (type yes if so) ");
+            client
+                .sync_with_callback(matrix_sdk::SyncSettings::new(), |response| async move {
+                    for event in response
+                        .to_device
+                        .events
+                        .iter()
+                        .filter_map(|e| e.deserialize().ok())
+                    {
+                        dbg!(&event);
+                        match event {
+                            AnyToDeviceEvent::KeyVerificationStart(e) => {
+                                println!("Starting verification");
+                                client
+                                    .get_verification(&e.content.transaction_id)
+                                    .await
+                                    .unwrap()
+                                    .accept()
+                                    .await
+                                    .unwrap();
+                            }
+                            AnyToDeviceEvent::KeyVerificationKey(e) => {
+                                std::thread::sleep(std::time::Duration::from_millis(2000));
+                                let sas = client
+                                    .get_verification(&e.content.transaction_id)
+                                    .await
+                                    .unwrap();
+                                std::thread::sleep(std::time::Duration::from_millis(2000));
+                                println!("Emojis: {:?}", sas.emoji());
+                                println!("Decimals: {:?}", sas.decimals());
+                                println!("Do they match? (type yes if so) ");
 
-                            let mut input = String::new();
-                            std::io::stdin()
-                                .read_line(&mut input)
-                                .expect("error: unable to read user input");
-                            if input.trim() == "yes" {
-                                println!("Confirming...");
-                                sas.confirm().await.unwrap();
+                                let mut input = String::new();
+                                std::io::stdin()
+                                    .read_line(&mut input)
+                                    .expect("error: unable to read user input");
+                                if input.trim() == "yes" {
+                                    println!("Confirming...");
+                                    sas.confirm().await.unwrap();
+                                    if sas.is_done() {
+                                        println!("Done!");
+                                        return matrix_sdk::LoopCtrl::Break;
+                                    }
+                                } else {
+                                    println!("Aborting...");
+                                    sas.cancel().await.unwrap();
+                                }
+                            }
+                            AnyToDeviceEvent::KeyVerificationMac(e) => {
+                                println!("Key verification mac");
+                                let sas = client
+                                    .get_verification(&e.content.transaction_id)
+                                    .await
+                                    .unwrap();
                                 if sas.is_done() {
                                     println!("Done!");
                                     return matrix_sdk::LoopCtrl::Break;
+                                } else {
+                                    println!("notdone..?");
                                 }
-                            } else {
-                                println!("Aborting...");
-                                sas.cancel().await.unwrap();
+                            }
+                            AnyToDeviceEvent::KeyVerificationAccept(e) => {
+                                println!("Accept");
+                                std::thread::sleep(std::time::Duration::from_millis(2000));
+                                let sas = client
+                                    .get_verification(&e.content.transaction_id)
+                                    .await
+                                    .unwrap();
+                                std::thread::sleep(std::time::Duration::from_millis(2000));
+                                println!("asdfasdf");
+                                sas.accept().await.unwrap();
+                                std::thread::sleep(std::time::Duration::from_millis(2000));
+                            }
+                            // AnyToDeviceEvent::KeyVerificationCancel(e) => {
+                            //     println!("They cancelled: {}", e.content.reason);
+                            //     return matrix_sdk::LoopCtrl::Break;
+                            // }
+                            e => {
+                                dbg!(e);
                             }
                         }
-                        AnyToDeviceEvent::KeyVerificationMac(e) => {
-                            println!("Key verification mac");
-                            let sas = client.get_verification(&e.content.transaction_id)
-                                .await
-                                .unwrap();
-                            if sas.is_done() {
-                                println!("Done!");
-                                return matrix_sdk::LoopCtrl::Break;
-                            } else {
-                                println!("notdone..?");
-                            }
-                        }
-                        AnyToDeviceEvent::KeyVerificationAccept(e) => {
-                            println!("Accept");
-                            std::thread::sleep(std::time::Duration::from_millis(2000));
-                            let sas = client.get_verification(&e.content.transaction_id)
-                                .await
-                                .unwrap();
-                            std::thread::sleep(std::time::Duration::from_millis(2000));
-                            println!("asdfasdf");
-                            sas.accept().await.unwrap();
-                            std::thread::sleep(std::time::Duration::from_millis(2000));
-                        }
-                        // AnyToDeviceEvent::KeyVerificationCancel(e) => {
-                        //     println!("They cancelled: {}", e.content.reason);
-                        //     return matrix_sdk::LoopCtrl::Break;
-                        // }
-                        e => {dbg!(e);},
                     }
-                }
-                matrix_sdk::LoopCtrl::Continue
-            }).await;
+                    matrix_sdk::LoopCtrl::Continue
+                })
+                .await;
 
             if device.is_trusted() {
                 println!("Success!");
@@ -154,14 +178,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn login(mient_config: &MientConfig, client: &mut matrix_sdk::Client) -> Result<(), Box<dyn std::error::Error>> {
+async fn login(
+    mient_config: &MientConfig,
+    client: &mut matrix_sdk::Client,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("Logging in...");
-    client.login(&mient_config.user,
-                 &mient_config.password,
-                 Some(&mient_config.device_id),
-                 Some("mient")).await?;
+    client
+        .login(
+            &mient_config.user,
+            &mient_config.password,
+            Some(&mient_config.device_id),
+            Some("mient"),
+        )
+        .await?;
     Ok(())
-
 }
 
 fn usage() {
