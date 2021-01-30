@@ -18,7 +18,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
         .await;
 
     // SETUP LOCAL STATE
-    let mut state = state::State::new("!tHQiiIudcezrbHPdCC:cbarrete.com");
+    let mut state = state::State::new();
     state.populate(&mut client).await;
 
     // SETUP TERMINAL

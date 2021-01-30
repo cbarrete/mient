@@ -52,10 +52,10 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(current_room_id: &str) -> Self {
+    pub fn new() -> Self {
         Self {
             input: String::new(),
-            current_room_id: Some(RoomId::try_from(current_room_id).unwrap()),
+            current_room_id: None,
             users: HashMap::new(),
             rooms: Vec::new(),
         }
