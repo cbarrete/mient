@@ -16,7 +16,7 @@ impl MatrixBroker {
     }
 
     fn publish(&self, event: MatrixEvent) {
-        self.tx.send(Event::Matrix(event));
+        self.tx.send(Event::Matrix(event)).unwrap();
         // TODO log if couldn't send
     }
 
