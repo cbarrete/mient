@@ -31,4 +31,3 @@ it isn't changed.
 - External editor
 - Read receipts
 - Better room list (consistent ordering)
-- Remove hardcoded default room
