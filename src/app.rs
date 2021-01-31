@@ -28,7 +28,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     let mut terminal = tui::Terminal::new(backend)?;
 
     // EVENT LOOP
-    spawn_matrix_task(client.clone(), matrix::MatrixBroker::new(tx.clone()));
+    spawn_matrix_sync_task(client.clone(), matrix::MatrixBroker::new(tx.clone()));
     let input_handle = spawn_input_task(tx.clone());
     spawn_tick_task(tx.clone());
 
@@ -57,7 +57,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-fn spawn_matrix_task(
+fn spawn_matrix_sync_task(
     client: matrix_sdk::Client,
     matrix_broker: matrix::MatrixBroker,
 ) -> tokio::task::JoinHandle<()> {
