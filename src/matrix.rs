@@ -89,7 +89,7 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
     ) {
         if let matrix_sdk::SyncRoom::Joined(room) = room {
             let room = room.read().await;
-            self.publish(MatrixEvent::Message {
+            self.publish(MatrixEvent::NewMessage {
                 id: room.room_id.clone(),
                 message: Message::new(
                     event.sender.clone(),

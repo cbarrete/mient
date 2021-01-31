@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::time::SystemTime;
 
 use matrix_sdk::events::room::message::MessageEventContent;
@@ -23,23 +23,42 @@ impl Message {
 }
 
 #[derive(Debug)]
+pub struct MessageList {
+    pub messages: VecDeque<Message>,
+}
+
+impl MessageList {
+    fn new() -> Self {
+        Self {
+            messages: VecDeque::new(),
+        }
+    }
+
+    pub fn push_new(&mut self, message: Message) {
+        self.messages.push_back(message)
+    }
+
+    pub fn push_old(&mut self, message: Message) {
+        self.messages.push_front(message)
+    }
+}
+
+#[derive(Debug)]
 pub struct Room {
     pub name: String,
-    pub messages: Vec<Message>,
+    pub message_list: MessageList,
     pub notifications: matrix_sdk::UInt,
+    pub prev_batch: String,
 }
 
 impl Room {
     pub fn new(name: String, notifications: matrix_sdk::UInt) -> Self {
         Self {
             name,
-            messages: Vec::new(),
+            message_list: MessageList::new(),
             notifications,
+            prev_batch: String::new(),
         }
-    }
-
-    pub fn add_message(&mut self, message: Message) {
-        self.messages.push(message);
     }
 }
 
@@ -109,7 +128,7 @@ impl State {
                 {
                     // dropping non text messages for now
                     if let matrix_sdk::events::AnySyncMessageEvent::RoomMessage(msg_event) = msg {
-                        room.add_message(Message::new(
+                        room.message_list.push_new(Message::new(
                             msg.sender().clone(),
                             msg_event.content.clone(),
                             msg.origin_server_ts().clone(),

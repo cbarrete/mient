@@ -11,8 +11,10 @@ pub struct UserEvent;
 #[derive(Debug)]
 pub enum MatrixEvent {
     RoomName { id: RoomId, name: String },
-    Message { id: RoomId, message: Message },
+    NewMessage { id: RoomId, message: Message },
+    OldMessage { id: RoomId, message: Message },
     Notifications { id: RoomId, count: matrix_sdk::UInt },
+    PrevBatch { id: RoomId, prev_batch: String },
 }
 
 #[derive(Debug)]
@@ -22,7 +24,12 @@ pub enum Event {
     Tick,
 }
 
-fn handle_keyboard_event(key: Key, state: &mut State, client: &mut matrix_sdk::Client) -> bool {
+fn handle_keyboard_event(
+    key: Key,
+    state: &mut State,
+    client: &mut matrix_sdk::Client,
+    tx: tokio::sync::mpsc::UnboundedSender<Event>,
+) -> bool {
     match key {
         Key::Char('\n') => {
             if let Some(id) = &state.current_room_id {
@@ -53,16 +60,52 @@ fn handle_keyboard_event(key: Key, state: &mut State, client: &mut matrix_sdk::C
             if let Some(id) = &state.current_room_id {
                 let client = client.clone();
                 let id = id.clone();
+                let prev_batch = state
+                    .rooms
+                    .iter()
+                    .find(|e| e.0 == id)
+                    .map(|e| e.1.prev_batch.clone())
+                    .unwrap_or(String::new());
                 tokio::task::spawn(async move {
-                    let token = client.sync_token().await.unwrap_or(String::new());
                     let mut request =
                         matrix_sdk::api::r0::message::get_message_events::Request::backward(
-                            &id, &token,
+                            &id,
+                            &prev_batch,
                         );
                     request.limit = matrix_sdk::UInt::new(50).unwrap();
-                    let r = client.room_messages(request).await;
-                    println!("synced");
-                    dbg!(r)
+                    let r = client.room_messages(request).await.unwrap();
+                    if let Some(prev_batch) = r.end {
+                        tx.send(Event::Matrix(MatrixEvent::PrevBatch {
+                            id: id.clone(),
+                            prev_batch,
+                        }))
+                        .unwrap();
+                    }
+                    for event in r.chunk {
+                        let event = event.deserialize().unwrap();
+                        match event {
+                            matrix_sdk::events::AnyRoomEvent::Message(m) => match m {
+                                matrix_sdk::events::AnyMessageEvent::RoomMessage(message) => {
+                                    tx.send(Event::Matrix(MatrixEvent::OldMessage {
+                                        id: id.clone(),
+                                        message: Message::new(
+                                            message.sender,
+                                            message.content,
+                                            message.origin_server_ts,
+                                        ),
+                                    }))
+                                    .unwrap();
+                                }
+                                _ => crate::log::log(&format!("{:?}\n", m)),
+                            },
+                            _ => crate::log::log(&format!("{:?}\n", event)),
+                        }
+                    }
+                    crate::log::log("state\n");
+                    for e in r.state {
+                        crate::log::log(&format!("{:?}\n", e));
+                    }
+                    crate::log::log("\n\n");
                 });
             }
         }
@@ -77,6 +120,7 @@ pub async fn handle_event(
     rx: &mut tokio::sync::mpsc::UnboundedReceiver<Event>,
     state: &mut State,
     client: &mut matrix_sdk::Client,
+    tx: &tokio::sync::mpsc::UnboundedSender<Event>,
 ) -> bool {
     let event = if let Some(e) = rx.recv().await {
         e
@@ -84,7 +128,7 @@ pub async fn handle_event(
         return false;
     };
     match event {
-        Event::Keyboard(key) => handle_keyboard_event(key, state, client),
+        Event::Keyboard(key) => handle_keyboard_event(key, state, client, tx.clone()),
         Event::Tick => true,
         Event::Matrix(e) => handle_matrix_event(e, state),
     }
@@ -98,15 +142,25 @@ fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
                 .rooms
                 .push((id, Box::new(Room::new(name, matrix_sdk::UInt::MIN)))),
         },
-        MatrixEvent::Message { id, message } => {
+        MatrixEvent::NewMessage { id, message } => {
             if let Some(room) = state.get_room_mut(&id) {
-                room.add_message(message)
+                room.message_list.push_new(message)
+            }
+        }
+        MatrixEvent::OldMessage { id, message } => {
+            if let Some(room) = state.get_room_mut(&id) {
+                room.message_list.push_old(message)
             }
         }
         MatrixEvent::Notifications { id, count } => {
             state
                 .get_room_mut(&id)
                 .map(|room| room.notifications = count);
+        }
+        MatrixEvent::PrevBatch { id, prev_batch } => {
+            state
+                .get_room_mut(&id)
+                .map(|room| room.prev_batch = prev_batch);
         }
     }
     true

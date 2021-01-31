@@ -30,11 +30,16 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     // EVENT LOOP
     spawn_matrix_task(client.clone(), matrix::MatrixBroker::new(tx.clone()));
     let input_handle = spawn_input_task(tx.clone());
-    spawn_tick_task(tx);
+    spawn_tick_task(tx.clone());
+
+    let event_tx = tx.clone();
 
     loop {
         ui::draw(&mut terminal, &mut state)?;
-        if !events::handle_event(&mut rx, &mut state, &mut client).await {
+        // TODO passing that event_tx probably isn't the cleanest way to do that, I probably want a
+        // struct that owns a MatrixBroker and handles matrix operations (sending, requesting old
+        // messages, etc.)
+        if !events::handle_event(&mut rx, &mut state, &mut client, &event_tx).await {
             break;
         }
     }

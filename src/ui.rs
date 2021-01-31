@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use matrix_sdk::identifiers::UserId;
 use tui::backend::Backend;
@@ -88,8 +88,8 @@ pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::i
 
         let messages: Vec<ListItem> = state
             .get_current_room()
-            .map(|room| &room.messages)
-            .unwrap_or(&Vec::new())
+            .map(|room| &room.message_list.messages)
+            .unwrap_or(&VecDeque::new())
             .iter()
             .map(|message| ListItem::new(format_message(message, &state.users)))
             .collect();
