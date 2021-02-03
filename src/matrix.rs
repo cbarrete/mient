@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use matrix_sdk::events::*;
 
 use crate::events::*;
-use crate::log::log;
 use crate::state::Message;
 
 pub struct MatrixBroker {
@@ -21,7 +20,7 @@ impl MatrixBroker {
     }
 
     fn debug(&self, message: &str) {
-        log(message)
+        crate::log::info(message)
         // self.tx.send(Event::Debug(String::from(message))).unwrap();
     }
 }

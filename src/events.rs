@@ -96,16 +96,16 @@ fn handle_keyboard_event(
                                     }))
                                     .unwrap();
                                 }
-                                _ => crate::log::log(&format!("{:?}\n", m)),
+                                _ => crate::log::info(&format!("{:?}\n", m)),
                             },
-                            _ => crate::log::log(&format!("{:?}\n", event)),
+                            _ => crate::log::info(&format!("{:?}\n", event)),
                         }
                     }
-                    crate::log::log("state\n");
+                    crate::log::info("state\n");
                     for e in r.state {
-                        crate::log::log(&format!("{:?}\n", e));
+                        crate::log::info(&format!("{:?}\n", e));
                     }
-                    crate::log::log("\n\n");
+                    crate::log::info("\n\n");
                 });
             }
         }
