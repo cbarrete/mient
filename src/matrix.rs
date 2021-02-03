@@ -15,8 +15,9 @@ impl MatrixBroker {
     }
 
     fn publish(&self, event: MatrixEvent) {
-        self.tx.send(Event::Matrix(event)).unwrap();
-        // TODO log if couldn't send
+        if let Err(err) = self.tx.send(Event::Matrix(event)) {
+            crate::log::error(&err.to_string())
+        }
     }
 }
 
