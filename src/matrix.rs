@@ -18,11 +18,6 @@ impl MatrixBroker {
         self.tx.send(Event::Matrix(event)).unwrap();
         // TODO log if couldn't send
     }
-
-    fn debug(&self, message: &str) {
-        crate::log::info(message)
-        // self.tx.send(Event::Debug(String::from(message))).unwrap();
-    }
 }
 
 impl MatrixBroker {
@@ -32,10 +27,10 @@ impl MatrixBroker {
     ) -> matrix_sdk::LoopCtrl {
         for (room_id, room) in response.rooms.join {
             if let Some(prev_batch) = room.timeline.prev_batch {
-                self.publish(dbg!(MatrixEvent::PrevBatch {
+                self.publish(MatrixEvent::PrevBatch {
                     id: room_id.clone(),
                     prev_batch,
-                }))
+                })
             }
             if let Some(count) = room.unread_notifications.notification_count {
                 self.publish(MatrixEvent::Notifications {
@@ -56,7 +51,7 @@ impl MatrixBroker {
     }
 
     fn handle_to_device(&self, event: AnyToDeviceEvent) {
-        self.debug(format!("{:?}", event).as_ref());
+        crate::log::info(format!("{:?}", event).as_ref());
     }
 }
 
@@ -68,7 +63,7 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
         _: matrix_sdk::SyncRoom,
         event: &SyncStateEvent<room::member::MemberEventContent>,
     ) {
-        self.debug(format!("on room member {:?}", event).as_ref());
+        crate::log::info(format!("on room member {:?}", event).as_ref());
     }
 
     async fn on_room_name(
@@ -76,7 +71,7 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
         room: matrix_sdk::SyncRoom,
         event: &SyncStateEvent<room::name::NameEventContent>,
     ) {
-        self.debug(format!("on room name {:?}", event).as_ref());
+        crate::log::info(format!("on room name {:?}", event).as_ref());
         if let matrix_sdk::RoomState::Joined(room) = room {
             let room = room.read().await;
             let name = room.display_name();
@@ -110,7 +105,7 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
         _: matrix_sdk::SyncRoom,
         event: &SyncMessageEvent<room::message::feedback::FeedbackEventContent>,
     ) {
-        self.debug(format!("on room msg fb {:?}", event).as_ref());
+        crate::log::info(format!("on room msg fb {:?}", event).as_ref());
     }
 
     async fn on_room_redaction(
@@ -118,7 +113,7 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
         _: matrix_sdk::SyncRoom,
         event: &room::redaction::SyncRedactionEvent,
     ) {
-        self.debug(format!("on room redaction {:?}", event).as_ref());
+        crate::log::info(format!("on room redaction {:?}", event).as_ref());
     }
 
     async fn on_room_power_levels(
@@ -206,8 +201,8 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
         event: &StrippedStateEvent<room::member::MemberEventContent>,
         content: Option<room::member::MemberEventContent>,
     ) {
-        self.debug(format!("on stripped state member {:?}", event).as_ref());
-        self.debug(format!("content {:?}", content).as_ref());
+        crate::log::info(format!("on stripped state member {:?}", event).as_ref());
+        crate::log::info(format!("content {:?}", content).as_ref());
     }
 
     async fn on_stripped_state_name(
@@ -250,11 +245,11 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
         _: matrix_sdk::SyncRoom,
         event: &StrippedStateEvent<room::join_rules::JoinRulesEventContent>,
     ) {
-        self.debug(format!("on stripped state join rules {:?}", event).as_ref());
+        crate::log::info(format!("on stripped state join rules {:?}", event).as_ref());
     }
 
     async fn on_non_room_presence(&self, _: matrix_sdk::SyncRoom, event: &presence::PresenceEvent) {
-        self.debug(format!("on non room presence event {:?}", event).as_ref());
+        crate::log::info(format!("on non room presence event {:?}", event).as_ref());
     }
 
     async fn on_non_room_ignored_users(
@@ -293,7 +288,7 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
     }
 
     async fn on_presence_event(&self, _: matrix_sdk::SyncRoom, _event: &presence::PresenceEvent) {
-        // self.debug(format!("on presence event {:?}", event).as_ref());
+        // crate::log::info(format!("on presence event {:?}", event).as_ref());
     }
 
     async fn on_unrecognized_event(
@@ -301,10 +296,10 @@ impl matrix_sdk::EventEmitter for MatrixBroker {
         _: matrix_sdk::SyncRoom,
         event: &exports::serde_json::value::RawValue,
     ) {
-        self.debug(format!("on unrecognized {:?}", event).as_ref());
+        crate::log::info(format!("on unrecognized {:?}", event).as_ref());
     }
 
     async fn on_custom_event(&self, _: matrix_sdk::SyncRoom, event: &matrix_sdk::CustomEvent<'_>) {
-        self.debug(format!("on custom event {:?}", event).as_ref());
+        crate::log::info(format!("on custom event {:?}", event).as_ref());
     }
 }
