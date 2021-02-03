@@ -82,7 +82,13 @@ fn handle_keyboard_event(
                         .unwrap();
                     }
                     for event in r.chunk {
-                        let event = event.deserialize().unwrap();
+                        let event = match event.deserialize() {
+                            Ok(e) => e,
+                            Err(err) => {
+                                crate::log::error(&err.to_string());
+                                continue;
+                            }
+                        };
                         match event {
                             matrix_sdk::events::AnyRoomEvent::Message(m) => match m {
                                 matrix_sdk::events::AnyMessageEvent::RoomMessage(message) => {
