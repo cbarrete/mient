@@ -68,7 +68,7 @@ fn spawn_matrix_sync_task(
         }
         client
             .sync_with_callback(sync_settings, |r| async {
-                matrix_broker.handle_response(r).await
+                matrix_broker.handle_sync_response(r).await
             })
             .await
     })

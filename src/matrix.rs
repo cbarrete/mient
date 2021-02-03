@@ -27,7 +27,7 @@ impl MatrixBroker {
 }
 
 impl MatrixBroker {
-    pub async fn handle_response(
+    pub async fn handle_sync_response(
         &self,
         response: matrix_sdk::api::r0::sync::sync_events::Response,
     ) -> matrix_sdk::LoopCtrl {
