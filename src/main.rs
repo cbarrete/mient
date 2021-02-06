@@ -2,7 +2,6 @@ use matrix_sdk::events::AnyToDeviceEvent;
 
 mod app;
 mod config;
-mod crypto;
 mod events;
 mod log;
 mod matrix;
@@ -29,10 +28,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         [] => {
             login(&mient_config, &mut client).await?;
             app::tui(client).await?
-        }
-        ["--cross-sign"] => {
-            login(&mient_config, &mut client).await?;
-            crypto::cross_sign(mient_config, client).await?
         }
         ["--import-keys", path, password] => {
             login(&mient_config, &mut client).await?;
@@ -190,7 +185,6 @@ async fn login(
 
 fn usage() {
     println!("Wrong arguments, must be either nothing or one of:");
-    println!("--cross-sign");
     println!("--import-keys <file> <password>");
     println!("--export-keys <file> <password>");
     println!("--list-devices");
