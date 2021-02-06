@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             println!("Starting verification...");
-            let sas = device.start_verification().await?;
+            let _ = device.start_verification().await?;
 
             client
                 .sync_once(matrix_sdk::SyncSettings::new().full_state(true))
