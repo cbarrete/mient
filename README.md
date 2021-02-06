@@ -15,12 +15,12 @@ Change the `device_id`, just make one up, it will one day be handled automatical
 Also the default room is hardcoded in `src/app.rs`, something might go wrong if
 it isn't changed.
 
-# Usage
+## Usage
 
 - `Ctrl-n/p` to go to the next/previous room
 - `Ctrl-s` to load old messages (not fully functional yet)
 
-# TODO
+## TODO
 
 - Manage access tokens and restore logins
 - Manage device ids
