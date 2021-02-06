@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config::MientConfig::get(&format!("{}/{}", &home, ".config/mient/config.json"))?;
 
     let client_config =
-        matrix_sdk::ClientConfig::new().store_path(&format!("{}/{}", home, "store"));
+        matrix_sdk::ClientConfig::new().store_path(&format!("{}/{}", home, ".local/share/mient"));
     let homeserver_url = url::Url::parse(&mient_config.homeserver)
         .expect("Couldn't parse the homeserver URL, you might have forgotten to prefix https://");
     let mut client = matrix_sdk::Client::new_with_config(homeserver_url, client_config)?;
