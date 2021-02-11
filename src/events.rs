@@ -59,14 +59,12 @@ fn handle_keyboard_event(
         Key::Ctrl('s') => {
             if let Some(id) = &state.current_room_id {
                 let client = client.clone();
-                let id = id.clone();
-                // TODO use Room::last_prev_batch
-                let prev_batch = state
-                    .rooms
-                    .iter()
-                    .find(|e| e.0 == id)
-                    .map(|e| e.1.prev_batch.clone())
+                let prev_batch = client
+                    .get_joined_room(&id)
+                    .map(|r| r.last_prev_batch())
+                    .unwrap_or(None)
                     .unwrap_or(String::new());
+                let id = id.clone();
                 tokio::task::spawn(async move {
                     let mut request =
                         matrix_sdk::api::r0::message::get_message_events::Request::backward(

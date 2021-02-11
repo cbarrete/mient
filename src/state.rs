@@ -48,7 +48,6 @@ pub struct Room {
     pub name: String,
     pub message_list: MessageList,
     pub notifications: u64,
-    pub prev_batch: String,
 }
 
 impl Room {
@@ -57,7 +56,6 @@ impl Room {
             name,
             message_list: MessageList::new(),
             notifications,
-            prev_batch: String::new(),
         }
     }
 }
