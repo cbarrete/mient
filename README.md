@@ -36,3 +36,4 @@ it isn't changed.
 - External editor
 - Read receipts
 - Better room list (consistent ordering)
+- Get initial state from the state store when it supports it again
