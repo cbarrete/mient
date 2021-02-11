@@ -47,12 +47,12 @@ impl MessageList {
 pub struct Room {
     pub name: String,
     pub message_list: MessageList,
-    pub notifications: matrix_sdk::UInt,
+    pub notifications: u64,
     pub prev_batch: String,
 }
 
 impl Room {
-    pub fn new(name: String, notifications: matrix_sdk::UInt) -> Self {
+    pub fn new(name: String, notifications: u64) -> Self {
         Self {
             name,
             message_list: MessageList::new(),
@@ -116,27 +116,27 @@ impl State {
 
     pub async fn populate(&mut self, client: &matrix_sdk::Client) {
         let joined_rooms = client.joined_rooms();
-        let joined_rooms = joined_rooms.read().await;
-        for (room_id, room) in joined_rooms.iter() {
-            let room_ref = room.read().await;
-            let mut room = Room::new(
-                room_ref.display_name(),
-                room_ref.unread_notifications.unwrap_or_default(),
+        for room in joined_rooms {
+            let mient_room = Room::new(
+                room.display_name().await.unwrap(),
+                room.unread_notification_counts().notification_count,
             );
-            for event in room_ref.messages.iter() {
-                if let matrix_sdk::events::AnyPossiblyRedactedSyncMessageEvent::Regular(msg) = event
-                {
-                    // dropping non text messages for now
-                    if let matrix_sdk::events::AnySyncMessageEvent::RoomMessage(msg_event) = msg {
-                        room.message_list.push_new(Message::new(
-                            msg.sender().clone(),
-                            msg_event.content.clone(),
-                            msg.origin_server_ts().clone(),
-                        ));
-                    }
-                }
-            }
-            self.rooms.push((room_id.clone(), Box::new(room)));
+            // TODO how tf do I populate now?
+            // for event in room_ref.messages.iter() {
+            //     if let matrix_sdk::events::AnyPossiblyRedactedSyncMessageEvent::Regular(msg) = event
+            //     {
+            //         // dropping non text messages for now
+            //         if let matrix_sdk::events::AnySyncMessageEvent::RoomMessage(msg_event) = msg {
+            //             room.message_list.push_new(Message::new(
+            //                 msg.sender().clone(),
+            //                 msg_event.content.clone(),
+            //                 msg.origin_server_ts().clone(),
+            //             ));
+            //         }
+            //     }
+            // }
+            self.rooms
+                .push((room.room_id().clone(), Box::new(mient_room)));
         }
     }
 

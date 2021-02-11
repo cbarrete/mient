@@ -5,14 +5,14 @@ authors = ["Cédric Barreteau"]
 edition = "2018"
 
 [dependencies]
-matrix-sdk = "*"
+matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk" }
 url = "*"
 unicode-width = "*"
 
 tui = "*"
 termion = "*"
 
-tokio = "0.2.24"
+tokio = { version = "*", features = ["full"] }
 async-trait = "*"
 
 serde = { version = "*", features = ["derive"] }

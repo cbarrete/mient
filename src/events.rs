@@ -13,7 +13,7 @@ pub enum MatrixEvent {
     RoomName { id: RoomId, name: String },
     NewMessage { id: RoomId, message: Message },
     OldMessage { id: RoomId, message: Message },
-    Notifications { id: RoomId, count: matrix_sdk::UInt },
+    Notifications { id: RoomId, count: u64 },
     PrevBatch { id: RoomId, prev_batch: String },
 }
 
@@ -60,6 +60,7 @@ fn handle_keyboard_event(
             if let Some(id) = &state.current_room_id {
                 let client = client.clone();
                 let id = id.clone();
+                // TODO use Room::last_prev_batch
                 let prev_batch = state
                     .rooms
                     .iter()
@@ -144,9 +145,7 @@ fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
     match event {
         MatrixEvent::RoomName { id, name } => match state.get_room_mut(&id) {
             Some(room) => room.name = name,
-            None => state
-                .rooms
-                .push((id, Box::new(Room::new(name, matrix_sdk::UInt::MIN)))),
+            None => state.rooms.push((id, Box::new(Room::new(name, 0)))),
         },
         MatrixEvent::NewMessage { id, message } => {
             if let Some(room) = state.get_room_mut(&id) {

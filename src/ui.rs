@@ -58,7 +58,7 @@ fn format_message(message: &Message, users: &HashMap<UserId, String>) -> String 
 }
 
 fn format_room_name(room: &Room) -> tui::text::Text {
-    if room.notifications > matrix_sdk::UInt::MIN {
+    if room.notifications > 0 {
         let style = Style::default().fg(Color::Red);
         Text::styled(&room.name, style)
     } else {

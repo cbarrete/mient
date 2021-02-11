@@ -44,13 +44,10 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
         }
     }
 
-    for id in client.joined_rooms().read().await.keys() {
-        let client = client.clone();
-        let id = id.clone();
-        tokio::task::spawn(async move { client.store_room_state(&id).await });
-    }
+    // TODO get initial state from state store
 
     rx.close();
+    // FIXME this join requires an additional key input
     let _ = tokio::join!(input_handle);
     drop(terminal);
 
