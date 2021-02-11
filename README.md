@@ -36,4 +36,3 @@ it isn't changed.
 - External editor
 - Read receipts
 - Better room list (consistent ordering)
-- Somehow set prev\_batch on room creation
