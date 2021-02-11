@@ -29,6 +29,7 @@ it isn't changed.
 - Much better message handling, probably with a VecDeque for easy backfilling
 - Look into other TUI frameworks, especially https://github.com/Gyscos/Cursive
 - Custom message room widget
+  - Scrolling
   - Nice colors
   - Timestamps
   - Selection (for replies, redactions and edits)
@@ -37,3 +38,5 @@ it isn't changed.
 - Read receipts
 - Better room list (consistent ordering)
 - Get initial state from the state store when it supports it again
+- Replies
+- Redactions
