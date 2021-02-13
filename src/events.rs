@@ -27,7 +27,7 @@ fn handle_keyboard_event(
     key: Key,
     state: &mut State,
     client: &mut matrix_sdk::Client,
-    tx: tokio::sync::mpsc::UnboundedSender<Event>,
+    tx: &tokio::sync::mpsc::UnboundedSender<Event>,
 ) -> bool {
     match key {
         Key::Char('\n') => {
@@ -57,56 +57,9 @@ fn handle_keyboard_event(
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
             if let Some(id) = &state.current_room_id {
-                let client = client.clone();
-                let prev_batch = client
-                    .get_joined_room(&id)
-                    .map(|r| r.last_prev_batch())
-                    .unwrap_or(None)
-                    .unwrap_or(String::new());
-                let id = id.clone();
-                tokio::task::spawn(async move {
-                    let mut request =
-                        matrix_sdk::api::r0::message::get_message_events::Request::backward(
-                            &id,
-                            &prev_batch,
-                        );
-                    request.limit = matrix_sdk::UInt::new(50).unwrap();
-                    let r = client.room_messages(request).await.unwrap();
-                    for event in r.chunk {
-                        let event = match event.deserialize() {
-                            Ok(e) => e,
-                            Err(err) => {
-                                crate::log::error(&err.to_string());
-                                continue;
-                            }
-                        };
-                        match event {
-                            matrix_sdk::events::AnyRoomEvent::Message(m) => match m {
-                                matrix_sdk::events::AnyMessageEvent::RoomMessage(message) => {
-                                    tx.send(Event::Matrix(MatrixEvent::OldMessage {
-                                        id: id.clone(),
-                                        message: Message::new(
-                                            message.sender,
-                                            message.content,
-                                            message.origin_server_ts,
-                                        ),
-                                    }))
-                                    .unwrap();
-                                }
-                                _ => crate::log::info(&format!("{:?}\n", m)),
-                            },
-                            _ => crate::log::info(&format!("{:?}\n", event)),
-                        }
-                    }
-                    crate::log::info("state\n");
-                    for e in r.state {
-                        crate::log::info(&format!("{:?}\n", e));
-                    }
-                    crate::log::info("\n\n");
-                });
+                crate::matrix::fetch_old_messages(id, client.clone(), tx.clone());
             }
         }
-        // TODO still broken, needs to be pressed twice
         Key::Esc => return false,
         _ => {}
     };
@@ -125,7 +78,7 @@ pub async fn handle_event(
         return false;
     };
     match event {
-        Event::Keyboard(key) => handle_keyboard_event(key, state, client, tx.clone()),
+        Event::Keyboard(key) => handle_keyboard_event(key, state, client, &tx),
         Event::Tick => true,
         Event::Matrix(e) => handle_matrix_event(e, state),
     }

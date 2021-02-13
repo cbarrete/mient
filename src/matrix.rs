@@ -5,6 +5,58 @@ use matrix_sdk::events::*;
 use crate::events::*;
 use crate::state::Message;
 
+pub fn fetch_old_messages(
+    room_id: &matrix_sdk::identifiers::RoomId,
+    client: matrix_sdk::Client,
+    tx: tokio::sync::mpsc::UnboundedSender<Event>,
+) {
+    let prev_batch = client
+        .get_joined_room(&room_id)
+        .map(|r| r.last_prev_batch())
+        .unwrap_or(None)
+        .unwrap_or(String::new());
+    let room_id = room_id.clone();
+    tokio::task::spawn(async move {
+        let mut request = matrix_sdk::api::r0::message::get_message_events::Request::backward(
+            &room_id,
+            &prev_batch,
+        );
+        request.limit = matrix_sdk::UInt::new(50).unwrap();
+        let r = client.room_messages(request).await.unwrap();
+        for event in r.chunk {
+            let event = match event.deserialize() {
+                Ok(e) => e,
+                Err(err) => {
+                    crate::log::error(&err.to_string());
+                    continue;
+                }
+            };
+            match event {
+                matrix_sdk::events::AnyRoomEvent::Message(m) => match m {
+                    matrix_sdk::events::AnyMessageEvent::RoomMessage(message) => {
+                        tx.send(Event::Matrix(MatrixEvent::OldMessage {
+                            id: room_id.clone(),
+                            message: Message::new(
+                                message.sender,
+                                message.content,
+                                message.origin_server_ts,
+                            ),
+                        }))
+                        .unwrap();
+                    }
+                    _ => crate::log::info(&format!("{:?}\n", m)),
+                },
+                _ => crate::log::info(&format!("{:?}\n", event)),
+            }
+        }
+        crate::log::info("state\n");
+        for e in r.state {
+            crate::log::info(&format!("{:?}\n", e));
+        }
+        crate::log::info("\n\n");
+    });
+}
+
 pub struct MatrixBroker {
     pub tx: tokio::sync::mpsc::UnboundedSender<Event>,
 }
@@ -19,9 +71,7 @@ impl MatrixBroker {
             crate::log::error(&err.to_string())
         }
     }
-}
 
-impl MatrixBroker {
     pub async fn handle_sync_response(
         &self,
         response: matrix_sdk::deserialized_responses::SyncResponse,
