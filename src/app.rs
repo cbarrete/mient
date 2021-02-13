@@ -10,7 +10,6 @@ use crate::ui;
 
 pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::error::Error>> {
     // SETUP COMMUNICATION
-    println!("Setting up communication");
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
     client
