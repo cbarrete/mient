@@ -21,8 +21,11 @@ pub fn fetch_old_messages(
             &prev_batch,
         );
         request.limit = matrix_sdk::UInt::new(50).unwrap();
-        let r = client.room_messages(request).await.unwrap();
-        for event in r.chunk {
+        let response = match client.room_messages(request).await {
+            Ok(r) => r,
+            Err(_) => return,
+        };
+        for event in response.chunk {
             let event = match event.deserialize() {
                 Ok(e) => e,
                 Err(err) => {
@@ -49,7 +52,7 @@ pub fn fetch_old_messages(
             }
         }
         crate::log::info("state\n");
-        for e in r.state {
+        for e in response.state {
             crate::log::info(&format!("{:?}\n", e));
         }
         crate::log::info("\n\n");
