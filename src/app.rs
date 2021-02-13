@@ -44,8 +44,6 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
         }
     }
 
-    // TODO get initial state from state store
-
     rx.close();
     // FIXME this join requires an additional key input
     let _ = tokio::join!(input_handle);

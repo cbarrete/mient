@@ -14,7 +14,6 @@ pub enum MatrixEvent {
     NewMessage { id: RoomId, message: Message },
     OldMessage { id: RoomId, message: Message },
     Notifications { id: RoomId, count: u64 },
-    PrevBatch { id: RoomId, prev_batch: String },
 }
 
 #[derive(Debug)]
@@ -73,13 +72,6 @@ fn handle_keyboard_event(
                         );
                     request.limit = matrix_sdk::UInt::new(50).unwrap();
                     let r = client.room_messages(request).await.unwrap();
-                    if let Some(prev_batch) = r.end {
-                        tx.send(Event::Matrix(MatrixEvent::PrevBatch {
-                            id: id.clone(),
-                            prev_batch,
-                        }))
-                        .unwrap();
-                    }
                     for event in r.chunk {
                         let event = match event.deserialize() {
                             Ok(e) => e,
@@ -159,11 +151,6 @@ fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
             state
                 .get_room_mut(&id)
                 .map(|room| room.notifications = count);
-        }
-        MatrixEvent::PrevBatch { id, prev_batch } => {
-            state
-                .get_room_mut(&id)
-                .map(|room| room.prev_batch = prev_batch);
         }
     }
     true

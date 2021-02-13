@@ -47,6 +47,7 @@ impl MessageList {
 pub struct Room {
     pub name: String,
     pub message_list: MessageList,
+    // TODO maybe just always get it from the SDK
     pub notifications: u64,
 }
 
@@ -119,7 +120,8 @@ impl State {
                 room.display_name().await.unwrap(),
                 room.unread_notification_counts().notification_count,
             );
-            // TODO how tf do I populate now?
+
+            // TODO get initial state from state store
             // for event in room_ref.messages.iter() {
             //     if let matrix_sdk::events::AnyPossiblyRedactedSyncMessageEvent::Regular(msg) = event
             //     {

@@ -27,12 +27,6 @@ impl MatrixBroker {
         response: matrix_sdk::deserialized_responses::SyncResponse,
     ) -> matrix_sdk::LoopCtrl {
         for (room_id, room) in response.rooms.join {
-            if let Some(prev_batch) = room.timeline.prev_batch {
-                self.publish(MatrixEvent::PrevBatch {
-                    id: room_id.clone(),
-                    prev_batch,
-                })
-            }
             self.publish(MatrixEvent::Notifications {
                 id: room_id.clone(),
                 count: room.unread_notifications.notification_count,
