@@ -40,3 +40,4 @@ it isn't changed.
 - Get initial state from the state store when it supports it again
 - Replies
 - Redactions
+- Print events like calls in the timeline
