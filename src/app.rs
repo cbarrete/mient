@@ -78,6 +78,9 @@ fn spawn_input_task(
                 if let Err(_) = tx.send(events::Event::Keyboard(key)) {
                     return;
                 }
+                if key == termion::event::Key::Esc {
+                    return;
+                }
             }
         }
     })
