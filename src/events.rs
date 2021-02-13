@@ -57,7 +57,7 @@ fn handle_keyboard_event(
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
             if let Some(id) = &state.current_room_id {
-                crate::matrix::fetch_old_messages(id, client.clone(), tx.clone());
+                crate::matrix::fetch_old_messages(id.clone(), client.clone(), tx.clone());
             }
         }
         Key::Esc => return false,

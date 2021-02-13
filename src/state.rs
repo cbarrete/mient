@@ -5,6 +5,8 @@ use matrix_sdk::events::room::message::MessageEventContent;
 use matrix_sdk::identifiers::RoomId;
 use matrix_sdk::identifiers::UserId;
 
+use crate::events::Event;
+
 #[derive(Debug)]
 pub struct Message {
     pub sender: UserId,
@@ -113,30 +115,22 @@ impl State {
         None
     }
 
-    pub async fn populate(&mut self, client: &matrix_sdk::Client) {
+    pub async fn populate(
+        &mut self,
+        client: matrix_sdk::Client,
+        tx: tokio::sync::mpsc::UnboundedSender<Event>,
+    ) {
         let joined_rooms = client.joined_rooms();
         for room in joined_rooms {
             let mient_room = Room::new(
                 room.display_name().await.unwrap(),
                 room.unread_notification_counts().notification_count,
             );
-
-            // TODO get initial state from state store
-            // for event in room_ref.messages.iter() {
-            //     if let matrix_sdk::events::AnyPossiblyRedactedSyncMessageEvent::Regular(msg) = event
-            //     {
-            //         // dropping non text messages for now
-            //         if let matrix_sdk::events::AnySyncMessageEvent::RoomMessage(msg_event) = msg {
-            //             room.message_list.push_new(Message::new(
-            //                 msg.sender().clone(),
-            //                 msg_event.content.clone(),
-            //                 msg.origin_server_ts().clone(),
-            //             ));
-            //         }
-            //     }
-            // }
             self.rooms
                 .push((room.room_id().clone(), Box::new(mient_room)));
+
+            // TODO get initial state from state store when the SDK supports it
+            crate::matrix::fetch_old_messages(room.room_id().clone(), client.clone(), tx.clone())
         }
     }
 
