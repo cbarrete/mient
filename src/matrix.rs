@@ -97,7 +97,7 @@ impl MatrixBroker {
 
 #[async_trait]
 #[allow(unused_must_use)]
-impl matrix_sdk::EventEmitter for MatrixBroker {
+impl matrix_sdk::EventHandler for MatrixBroker {
     async fn on_room_member(
         &self,
         _: matrix_sdk::RoomState,

@@ -13,7 +13,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
     client
-        .add_event_emitter(Box::new(matrix::MatrixBroker::new(tx.clone())))
+        .set_event_handler(Box::new(matrix::MatrixBroker::new(tx.clone())))
         .await;
 
     // SETUP LOCAL STATE
