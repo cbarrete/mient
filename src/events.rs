@@ -88,7 +88,7 @@ fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
     match event {
         MatrixEvent::RoomName { id, name } => match state.get_room_mut(&id) {
             Some(room) => room.name = name,
-            None => state.rooms.push((id, Box::new(Room::new(name, 0)))),
+            None => state.rooms.push(Room::new(name, id, 0)),
         },
         MatrixEvent::NewMessage { id, message } => {
             if let Some(room) = state.get_room_mut(&id) {

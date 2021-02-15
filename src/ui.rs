@@ -72,8 +72,8 @@ pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::i
 
         let mut rooms: Vec<ListItem> = Vec::with_capacity(state.rooms.len());
         let mut selected = None;
-        for (i, (room_id, room)) in state.rooms.iter().enumerate() {
-            if Some(room_id.clone()) == state.current_room_id {
+        for (i, room) in state.rooms.iter().enumerate() {
+            if Some(room.id.clone()) == state.current_room_id {
                 selected = Some(i)
             }
             rooms.push(ListItem::new(format_room_name(&room)));

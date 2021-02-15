@@ -48,15 +48,17 @@ impl MessageList {
 #[derive(Debug)]
 pub struct Room {
     pub name: String,
+    pub id: RoomId,
     pub message_list: MessageList,
     // TODO maybe just always get it from the SDK
     pub notifications: u64,
 }
 
 impl Room {
-    pub fn new(name: String, notifications: u64) -> Self {
+    pub fn new(name: String, id: RoomId, notifications: u64) -> Self {
         Self {
             name,
+            id,
             message_list: MessageList::new(),
             notifications,
         }
@@ -67,7 +69,7 @@ pub struct State {
     pub input: String,
     pub current_room_id: Option<RoomId>,
     pub users: HashMap<UserId, String>,
-    pub rooms: Vec<(RoomId, Box<Room>)>,
+    pub rooms: Vec<Room>,
 }
 
 impl State {
@@ -98,8 +100,8 @@ impl State {
     }
 
     pub fn get_room(&self, room_id: &RoomId) -> Option<&Room> {
-        for (id, room) in &self.rooms {
-            if id == room_id {
+        for room in &self.rooms {
+            if &room.id == room_id {
                 return Some(&room);
             }
         }
@@ -107,8 +109,8 @@ impl State {
     }
 
     pub fn get_room_mut(&mut self, room_id: &RoomId) -> Option<&mut Room> {
-        for (id, room) in self.rooms.iter_mut() {
-            if id == room_id {
+        for room in self.rooms.iter_mut() {
+            if &room.id == room_id {
                 return Some(room);
             }
         }
@@ -124,10 +126,10 @@ impl State {
         for room in joined_rooms {
             let mient_room = Room::new(
                 room.display_name().await.unwrap(),
+                room.room_id().clone(),
                 room.unread_notification_counts().notification_count,
             );
-            self.rooms
-                .push((room.room_id().clone(), Box::new(mient_room)));
+            self.rooms.push(mient_room);
 
             // TODO get initial state from state store when the SDK supports it
             crate::matrix::fetch_old_messages(room.room_id().clone(), client.clone(), tx.clone())
@@ -136,7 +138,7 @@ impl State {
 
     pub fn change_current_room(&mut self, increment: i8) {
         let current_position = if let Some(current_id) = &self.current_room_id {
-            self.rooms.iter().position(|(id, _)| &*id == current_id)
+            self.rooms.iter().position(|room| &room.id == current_id)
         } else {
             None
         };
@@ -146,6 +148,6 @@ impl State {
         self.current_room_id = self
             .rooms
             .get(new_position as usize)
-            .map(|(id, _)| id.clone());
+            .map(|room| room.id.clone());
     }
 }
