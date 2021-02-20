@@ -7,14 +7,17 @@ use crate::state::Message;
 
 pub fn fetch_old_messages(
     room_id: matrix_sdk::identifiers::RoomId,
+    prev_batch: String,
     client: matrix_sdk::Client,
     tx: tokio::sync::mpsc::UnboundedSender<Event>,
 ) {
-    let prev_batch = client
-        .get_joined_room(&room_id)
-        .map(|r| r.last_prev_batch())
-        .unwrap_or(None)
-        .unwrap_or(String::new());
+    // TODO do this when the SDK also keeps track of the prev_batch token when it comes from
+    // discrete request responses
+    // let prev_batch = client
+    //     .get_joined_room(&room_id)
+    //     .map(|r| r.last_prev_batch())
+    //     .unwrap_or(None)
+    //     .unwrap_or(String::new());
     tokio::task::spawn(async move {
         let mut request = matrix_sdk::api::r0::message::get_message_events::Request::backward(
             &room_id,
@@ -24,6 +27,14 @@ pub fn fetch_old_messages(
         let response = match client.room_messages(request).await {
             Ok(r) => r,
             Err(_) => return,
+        };
+        if let Some(prev_batch) = response.end {
+            if let Err(e) = tx.send(Event::Matrix(MatrixEvent::PrevBatch {
+                id: room_id.clone(),
+                prev_batch,
+            })) {
+                crate::log::error(&e.to_string());
+            }
         };
         for event in response.chunk {
             let event = match event.deserialize() {

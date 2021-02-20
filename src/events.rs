@@ -14,6 +14,7 @@ pub enum MatrixEvent {
     NewMessage { id: RoomId, message: Message },
     OldMessage { id: RoomId, message: Message },
     Notifications { id: RoomId, count: u64 },
+    PrevBatch { id: RoomId, prev_batch: String },
 }
 
 #[derive(Debug)]
@@ -57,7 +58,12 @@ fn handle_keyboard_event(
         Key::Up => {
             if let Some(room) = state.get_current_room() {
                 if room.message_list.current_index == 0 {
-                    crate::matrix::fetch_old_messages(room.id.clone(), client.clone(), tx.clone());
+                    crate::matrix::fetch_old_messages(
+                        room.id.clone(),
+                        room.prev_batch.clone(),
+                        client.clone(),
+                        tx.clone(),
+                    );
                 } else {
                     state.change_current_message(-1);
                 }
@@ -67,7 +73,12 @@ fn handle_keyboard_event(
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
             if let Some(room) = state.get_current_room() {
-                crate::matrix::fetch_old_messages(room.id.clone(), client.clone(), tx.clone());
+                crate::matrix::fetch_old_messages(
+                    room.id.clone(),
+                    room.prev_batch.clone(),
+                    client.clone(),
+                    tx.clone(),
+                );
             }
         }
         Key::Esc => return false,
@@ -114,6 +125,11 @@ fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
             state
                 .get_room_mut(&id)
                 .map(|room| room.notifications = count);
+        }
+        MatrixEvent::PrevBatch { id, prev_batch } => {
+            state
+                .get_room_mut(&id)
+                .map(|room| room.prev_batch = prev_batch);
         }
     }
     true

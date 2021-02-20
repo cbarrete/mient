@@ -58,6 +58,7 @@ pub struct Room {
     pub message_list: MessageList,
     // TODO maybe just always get it from the SDK
     pub notifications: u64,
+    pub prev_batch: String,
 }
 
 impl Room {
@@ -67,6 +68,7 @@ impl Room {
             id,
             message_list: MessageList::new(),
             notifications,
+            prev_batch: String::new(),
         }
     }
 }
@@ -131,7 +133,17 @@ impl State {
             self.rooms.push(mient_room);
 
             // TODO get initial state from state store when the SDK supports it
-            crate::matrix::fetch_old_messages(room.room_id().clone(), client.clone(), tx.clone())
+            let prev_batch = client
+                .get_joined_room(room.room_id())
+                .map(|r| r.last_prev_batch())
+                .unwrap_or(None)
+                .unwrap_or(String::new());
+            crate::matrix::fetch_old_messages(
+                room.room_id().clone(),
+                prev_batch,
+                client.clone(),
+                tx.clone(),
+            )
         }
     }
 
