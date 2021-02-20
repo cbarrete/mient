@@ -68,7 +68,7 @@ fn format_room_name(room: &Room) -> tui::text::Text {
 
 fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
     let mut rooms: Vec<ListItem> = Vec::with_capacity(state.rooms.len());
-    for (i, room) in state.rooms.iter().enumerate() {
+    for room in state.rooms.iter() {
         rooms.push(ListItem::new(format_room_name(&room)));
     }
     let room_list = List::new(rooms)
