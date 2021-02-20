@@ -1,16 +1,16 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 use matrix_sdk::identifiers::UserId;
-use tui::backend::Backend;
-use tui::style::Color;
 use tui::style::Modifier;
 use tui::style::Style;
 use tui::text::Text;
+use tui::{backend::Backend, text::Spans};
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Terminal,
 };
+use tui::{style::Color, text::Span};
 use unicode_width::UnicodeWidthStr;
 
 use crate::state::Message;
@@ -42,19 +42,30 @@ fn make_layout(terminal_size: Rect) -> MientLayout {
 }
 
 // TODO could return some fancy stuff for formatting
-fn format_message(message: &Message, users: &HashMap<UserId, String>) -> String {
+fn format_message<'a>(message: &'a Message, users: &'a HashMap<UserId, String>) -> Text<'a> {
     let sender = if let Some(sender) = users.get(&message.sender) {
         sender
     } else {
         message.sender.localpart()
     };
     let body = match &message.content {
-        matrix_sdk::events::room::message::MessageEventContent::Text(content) => {
-            content.body.clone()
-        }
-        other => format!("{:?}", other),
+        matrix_sdk::events::room::message::MessageEventContent::Text(content) => &content.body,
+        _ => "plz implement me",
     };
-    format!("{}: {}", sender, body)
+    let mut text;
+    let mut spans_vec = vec![
+        Span::styled(sender, Style::default().fg(Color::Cyan)),
+        Span::raw(": "),
+    ];
+    if let Some(pos) = body.find('\n') {
+        spans_vec.push(Span::from(&body[..pos]));
+        text = Text::from(Spans::from(spans_vec));
+        text.extend(Text::raw(&body[pos..]));
+    } else {
+        spans_vec.push(Span::from(body));
+        text = Text::from(Spans::from(spans_vec))
+    }
+    text
 }
 
 fn format_room_name(room: &Room) -> tui::text::Text {
@@ -81,20 +92,21 @@ fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Fr
 }
 
 fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
-    let messages: Vec<ListItem> = state
-        .current_room()
-        .map(|room| &room.message_list.messages)
-        .unwrap_or(&VecDeque::new())
-        .iter()
-        .map(|message| ListItem::new(format_message(message, &state.users))) // TODO those users are not really in sync rn
-        .collect();
-    let message_list = List::new(messages)
-        .block(Block::default().borders(Borders::BOTTOM))
-        .highlight_style(Style::default().fg(Color::Yellow))
-        .highlight_symbol("*");
-    let mut message_list_state = ListState::default();
-    message_list_state.select(state.current_room().map(|r| r.message_list.current_index));
-    frame.render_stateful_widget(message_list, region, &mut message_list_state);
+    if let Some(room) = state.current_room() {
+        let messages: Vec<ListItem> = room
+            .message_list
+            .messages
+            .iter()
+            .map(|message| ListItem::new(format_message(message, &state.users))) // TODO those users are not really in sync rn
+            .collect();
+        let message_list = List::new(messages)
+            .block(Block::default().borders(Borders::BOTTOM))
+            .highlight_style(Style::default().fg(Color::Yellow))
+            .highlight_symbol("*");
+        let mut message_list_state = ListState::default();
+        message_list_state.select(state.current_room().map(|r| r.message_list.current_index));
+        frame.render_stateful_widget(message_list, region, &mut message_list_state);
+    }
 }
 
 fn render_input<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
