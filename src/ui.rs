@@ -88,16 +88,15 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
         .iter()
         .map(|message| ListItem::new(format_message(message, &state.users)))
         .collect();
-    let index = if messages.len() > 0 {
-        messages.len() - 1
-    } else {
-        0
-    };
     let message_list = List::new(messages)
         .block(Block::default().borders(Borders::BOTTOM))
         .highlight_symbol(">");
     let mut message_list_state = ListState::default();
-    message_list_state.select(Some(index));
+    message_list_state.select(
+        state
+            .get_current_room()
+            .map(|r| r.message_list.current_index),
+    );
     frame.render_stateful_widget(message_list, region, &mut message_list_state);
 }
 

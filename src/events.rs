@@ -54,6 +54,8 @@ fn handle_keyboard_event(
         Key::Ctrl('u') => state.input.clear(),
         Key::Ctrl('p') => state.change_current_room(-1),
         Key::Ctrl('n') => state.change_current_room(1),
+        Key::Up => state.change_current_message(-1),
+        Key::Down => state.change_current_message(1),
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
             if let Some(room) = state.get_current_room() {

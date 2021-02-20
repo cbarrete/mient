@@ -27,21 +27,27 @@ impl Message {
 #[derive(Debug)]
 pub struct MessageList {
     pub messages: VecDeque<Message>,
+    pub current_index: usize,
 }
 
 impl MessageList {
     fn new() -> Self {
         Self {
             messages: VecDeque::new(),
+            current_index: 0,
         }
     }
 
     pub fn push_new(&mut self, message: Message) {
-        self.messages.push_back(message)
+        self.messages.push_back(message);
+        if self.current_index == self.messages.len() {
+            self.current_index += 1;
+        }
     }
 
     pub fn push_old(&mut self, message: Message) {
-        self.messages.push_front(message)
+        self.messages.push_front(message);
+        self.current_index = std::cmp::min(self.current_index + 1, self.messages.len() - 1);
     }
 }
 
@@ -132,5 +138,14 @@ impl State {
     pub fn change_current_room(&mut self, increment: i8) {
         self.current_room_index =
             (self.current_room_index as i8 + increment).rem_euclid(self.rooms.len() as i8) as usize;
+    }
+
+    pub fn change_current_message(&mut self, increment: i8) {
+        if let Some(current_room) = self.get_current_room_mut() {
+            let message_list = &mut current_room.message_list;
+            message_list.current_index = (message_list.current_index as i8 + increment)
+                .clamp(0, message_list.messages.len() as i8 - 1)
+                as usize;
+        }
     }
 }
