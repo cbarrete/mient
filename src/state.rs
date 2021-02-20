@@ -135,16 +135,16 @@ impl State {
         }
     }
 
-    pub fn change_current_room(&mut self, increment: i8) {
-        self.current_room_index =
-            (self.current_room_index as i8 + increment).rem_euclid(self.rooms.len() as i8) as usize;
+    pub fn change_current_room(&mut self, increment: i32) {
+        self.current_room_index = (self.current_room_index as i32 + increment)
+            .rem_euclid(self.rooms.len() as i32) as usize;
     }
 
-    pub fn change_current_message(&mut self, increment: i8) {
+    pub fn change_current_message(&mut self, increment: i32) {
         if let Some(current_room) = self.get_current_room_mut() {
             let message_list = &mut current_room.message_list;
-            message_list.current_index = (message_list.current_index as i8 + increment)
-                .clamp(0, message_list.messages.len() as i8)
+            message_list.current_index = (message_list.current_index as i32 + increment)
+                .clamp(0, message_list.messages.len() as i32)
                 as usize;
         }
     }
