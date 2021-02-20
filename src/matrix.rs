@@ -7,7 +7,7 @@ use crate::state::Message;
 
 pub fn fetch_old_messages(
     room_id: matrix_sdk::identifiers::RoomId,
-    prev_batch: String,
+    room: &mut crate::state::Room,
     client: matrix_sdk::Client,
     tx: tokio::sync::mpsc::UnboundedSender<Event>,
 ) {
@@ -18,6 +18,13 @@ pub fn fetch_old_messages(
     //     .map(|r| r.last_prev_batch())
     //     .unwrap_or(None)
     //     .unwrap_or(String::new());
+    let prev_batch = match room.prev_batch.clone() {
+        Some(pb) => {
+            room.prev_batch = None;
+            pb
+        }
+        None => return,
+    };
     tokio::task::spawn(async move {
         let mut request = matrix_sdk::api::r0::message::get_message_events::Request::backward(
             &room_id,

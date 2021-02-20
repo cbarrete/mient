@@ -56,11 +56,11 @@ fn handle_keyboard_event(
         Key::Ctrl('p') => state.change_current_room(-1),
         Key::Ctrl('n') => state.change_current_room(1),
         Key::Up => {
-            if let Some(room) = state.get_current_room() {
+            if let Some(mut room) = state.get_current_room_mut() {
                 if room.message_list.current_index == 0 {
                     crate::matrix::fetch_old_messages(
                         room.id.clone(),
-                        room.prev_batch.clone(),
+                        &mut room,
                         client.clone(),
                         tx.clone(),
                     );
@@ -72,10 +72,10 @@ fn handle_keyboard_event(
         Key::Down => state.change_current_message(1),
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
-            if let Some(room) = state.get_current_room() {
+            if let Some(mut room) = state.get_current_room_mut() {
                 crate::matrix::fetch_old_messages(
                     room.id.clone(),
-                    room.prev_batch.clone(),
+                    &mut room,
                     client.clone(),
                     tx.clone(),
                 );
@@ -129,7 +129,7 @@ fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
         MatrixEvent::PrevBatch { id, prev_batch } => {
             state
                 .get_room_mut(&id)
-                .map(|room| room.prev_batch = prev_batch);
+                .map(|room| room.prev_batch = Some(prev_batch));
         }
     }
     true
