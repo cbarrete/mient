@@ -66,51 +66,57 @@ fn format_room_name(room: &Room) -> tui::text::Text {
     }
 }
 
+fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
+    let mut rooms: Vec<ListItem> = Vec::with_capacity(state.rooms.len());
+    let mut selected = None;
+    for (i, room) in state.rooms.iter().enumerate() {
+        if Some(room.id.clone()) == state.current_room_id {
+            selected = Some(i)
+        }
+        rooms.push(ListItem::new(format_room_name(&room)));
+    }
+    let room_list = List::new(rooms)
+        .block(Block::default().borders(Borders::RIGHT))
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+        .highlight_symbol(">");
+    let mut room_list_state = ListState::default();
+    room_list_state.select(selected);
+    frame.render_stateful_widget(room_list, region, &mut room_list_state);
+}
+
+fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
+    let messages: Vec<ListItem> = state
+        .get_current_room()
+        .map(|room| &room.message_list.messages)
+        .unwrap_or(&VecDeque::new())
+        .iter()
+        .map(|message| ListItem::new(format_message(message, &state.users)))
+        .collect();
+    let index = if messages.len() > 0 {
+        messages.len() - 1
+    } else {
+        0
+    };
+    let message_list = List::new(messages).block(Block::default().borders(Borders::BOTTOM));
+    let mut message_list_state = ListState::default();
+    message_list_state.select(Some(index));
+    frame.render_stateful_widget(message_list, region, &mut message_list_state);
+}
+
+fn render_input<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
+    let is = state.input.width() as u16;
+    let rs = region.width;
+    let input =
+        Paragraph::new(state.input.as_ref()).scroll((0, if is + 1 > rs { is + 1 - rs } else { 0 }));
+    frame.render_widget(input, region);
+    frame.set_cursor(region.x + state.input.width() as u16, region.y);
+}
+
 pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::io::Result<()> {
     terminal.draw(|f| {
         let layout = make_layout(f.size());
-
-        let mut rooms: Vec<ListItem> = Vec::with_capacity(state.rooms.len());
-        let mut selected = None;
-        for (i, room) in state.rooms.iter().enumerate() {
-            if Some(room.id.clone()) == state.current_room_id {
-                selected = Some(i)
-            }
-            rooms.push(ListItem::new(format_room_name(&room)));
-        }
-        let room_list = List::new(rooms)
-            .block(Block::default().borders(Borders::RIGHT))
-            .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-            .highlight_symbol(">");
-        let mut room_list_state = ListState::default();
-        room_list_state.select(selected);
-        f.render_stateful_widget(room_list, layout.rooms_region, &mut room_list_state);
-
-        let messages: Vec<ListItem> = state
-            .get_current_room()
-            .map(|room| &room.message_list.messages)
-            .unwrap_or(&VecDeque::new())
-            .iter()
-            .map(|message| ListItem::new(format_message(message, &state.users)))
-            .collect();
-        let index = if messages.len() > 0 {
-            messages.len() - 1
-        } else {
-            0
-        };
-        let message_list = List::new(messages).block(Block::default().borders(Borders::BOTTOM));
-        room_list_state.select(Some(index));
-        f.render_stateful_widget(message_list, layout.messages_region, &mut room_list_state);
-
-        let is = state.input.width() as u16;
-        let rs = layout.input_region.width;
-        let input = Paragraph::new(state.input.as_ref())
-            .scroll((0, if is + 1 > rs { is + 1 - rs } else { 0 }));
-        f.render_widget(input, layout.input_region);
-
-        f.set_cursor(
-            layout.input_region.x + state.input.width() as u16,
-            layout.input_region.y,
-        );
+        render_room_list(&state, layout.rooms_region, f);
+        render_message_list(&state, layout.messages_region, f);
+        render_input(&state, layout.input_region, f);
     })
 }
