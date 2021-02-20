@@ -32,7 +32,6 @@ Sending a message while another one is selected will send a reply.
 - Much better message handling, probably with a VecDeque for easy backfilling
 - Look into other TUI frameworks, especially https://github.com/Gyscos/Cursive
 - Custom message room widget
-  - Scrolling
   - Nice colors
   - Timestamps
   - Keep track of max prefix (username/userid/ts) width and align messages
