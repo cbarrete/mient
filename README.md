@@ -17,8 +17,9 @@ it isn't changed.
 
 ## Usage
 
-- `Ctrl-n/p` to go to the next/previous room
+- `Ctrl-p/n` to select the previous/next room
 - `Ctrl-s` to load old messages (not fully functional yet)
+- `Up/Down` to select the previous/next message
 
 ## TODO
 
