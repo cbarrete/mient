@@ -67,7 +67,7 @@ impl Room {
 
 pub struct State {
     pub input: String,
-    pub current_room_id: Option<RoomId>,
+    pub current_room_index: usize,
     pub users: HashMap<UserId, String>,
     pub rooms: Vec<Room>,
 }
@@ -76,29 +76,22 @@ impl State {
     pub fn new() -> Self {
         Self {
             input: String::new(),
-            current_room_id: None,
+            current_room_index: 0,
             users: HashMap::new(),
             rooms: Vec::new(),
         }
     }
 
     pub fn get_current_room(&self) -> Option<&Room> {
-        if let Some(id) = &self.current_room_id {
-            self.get_room(&id)
-        } else {
-            None
-        }
+        self.rooms.get(self.current_room_index)
     }
 
     #[allow(dead_code)]
     pub fn get_current_room_mut(&mut self) -> Option<&mut Room> {
-        if let Some(id) = self.current_room_id.clone() {
-            self.get_room_mut(&id)
-        } else {
-            None
-        }
+        self.rooms.get_mut(self.current_room_index)
     }
 
+    #[allow(dead_code)]
     pub fn get_room(&self, room_id: &RoomId) -> Option<&Room> {
         for room in &self.rooms {
             if &room.id == room_id {
@@ -137,17 +130,7 @@ impl State {
     }
 
     pub fn change_current_room(&mut self, increment: i8) {
-        let current_position = if let Some(current_id) = &self.current_room_id {
-            self.rooms.iter().position(|room| &room.id == current_id)
-        } else {
-            None
-        };
-        let new_position = current_position
-            .map(|p| (p as i8 + increment).rem_euclid(self.rooms.len() as i8))
-            .unwrap_or(0);
-        self.current_room_id = self
-            .rooms
-            .get(new_position as usize)
-            .map(|room| room.id.clone());
+        self.current_room_index =
+            (self.current_room_index as i8 + increment).rem_euclid(self.rooms.len() as i8) as usize;
     }
 }

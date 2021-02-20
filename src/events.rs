@@ -31,16 +31,16 @@ fn handle_keyboard_event(
 ) -> bool {
     match key {
         Key::Char('\n') => {
-            if let Some(id) = &state.current_room_id {
+            if let Some(room) = state.get_current_room() {
                 if state.input.is_empty() {
                     return true;
                 }
+                let id = room.id.clone();
                 let text: String = state.input.drain(..).collect();
                 let content =
                     matrix_sdk::events::room::message::MessageEventContent::text_plain(text);
                 let message = matrix_sdk::events::AnyMessageEventContent::RoomMessage(content);
                 let client = client.clone();
-                let id = id.clone();
                 tokio::task::spawn(async move { client.room_send(&id, message, None).await });
                 // TODO txn id for local echo
             }
@@ -56,8 +56,8 @@ fn handle_keyboard_event(
         Key::Ctrl('n') => state.change_current_room(1),
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
-            if let Some(id) = &state.current_room_id {
-                crate::matrix::fetch_old_messages(id.clone(), client.clone(), tx.clone());
+            if let Some(room) = state.get_current_room() {
+                crate::matrix::fetch_old_messages(room.id.clone(), client.clone(), tx.clone());
             }
         }
         Key::Esc => return false,

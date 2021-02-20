@@ -68,11 +68,7 @@ fn format_room_name(room: &Room) -> tui::text::Text {
 
 fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
     let mut rooms: Vec<ListItem> = Vec::with_capacity(state.rooms.len());
-    let mut selected = None;
     for (i, room) in state.rooms.iter().enumerate() {
-        if Some(room.id.clone()) == state.current_room_id {
-            selected = Some(i)
-        }
         rooms.push(ListItem::new(format_room_name(&room)));
     }
     let room_list = List::new(rooms)
@@ -80,7 +76,7 @@ fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Fr
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
         .highlight_symbol(">");
     let mut room_list_state = ListState::default();
-    room_list_state.select(selected);
+    room_list_state.select(Some(state.current_room_index));
     frame.render_stateful_widget(room_list, region, &mut room_list_state);
 }
 
