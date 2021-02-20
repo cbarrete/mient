@@ -1,9 +1,28 @@
 use async_trait::async_trait;
 
-use matrix_sdk::events::*;
+use matrix_sdk::{events::*, identifiers::UserId};
 
 use crate::events::*;
 use crate::state::Message;
+
+pub fn format_reply_content(
+    replied_to_content: room::message::MessageEventContent,
+    sender: UserId,
+    reply: String,
+) -> String {
+    let body = match replied_to_content {
+        room::message::MessageEventContent::Text(text) => text.body,
+        other => format!("{:?}", other),
+    };
+    let quoted_replied = body
+        .lines()
+        // skip quoted content, those are previous replied_to
+        .skip_while(|s| s.starts_with(">"))
+        .map(|s| format!("> {}", s))
+        .collect::<Vec<String>>()
+        .join("\n");
+    format!("> <{}> {}\n\n{}", sender, quoted_replied, reply)
+}
 
 pub fn fetch_old_messages(
     room_id: matrix_sdk::identifiers::RoomId,
@@ -58,6 +77,7 @@ pub fn fetch_old_messages(
                             id: room_id.clone(),
                             message: Message::new(
                                 message.sender,
+                                message.event_id,
                                 message.content,
                                 message.origin_server_ts,
                             ),
@@ -150,6 +170,7 @@ impl matrix_sdk::EventHandler for MatrixBroker {
                 id: room.room_id().clone(),
                 message: Message::new(
                     event.sender.clone(),
+                    event.event_id.clone(),
                     event.content.clone(),
                     event.origin_server_ts.clone(),
                 ),

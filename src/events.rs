@@ -36,10 +36,30 @@ fn handle_keyboard_event(
                 if state.input.is_empty() {
                     return true;
                 }
+                use matrix_sdk::events::room::message;
                 let id = room.id.clone();
+                let selected_message = room
+                    .message_list
+                    .messages
+                    .get(room.message_list.current_index)
+                    .map(|m| m.clone());
+
                 let text: String = state.input.drain(..).collect();
-                let content =
-                    matrix_sdk::events::room::message::MessageEventContent::text_plain(text);
+                let mut text_content = message::TextMessageEventContent::plain(text.clone());
+
+                if let Some(msg) = selected_message.clone() {
+                    use matrix_sdk::events::room::relationships;
+                    let relates_to = message::Relation::Reply {
+                        in_reply_to: relationships::InReplyTo {
+                            event_id: msg.id.clone(),
+                        },
+                    };
+                    text_content.relates_to = Some(relates_to);
+                    text_content.body =
+                        crate::matrix::format_reply_content(msg.content, msg.sender, text);
+                };
+
+                let content = message::MessageEventContent::Text(text_content);
                 let message = matrix_sdk::events::AnyMessageEventContent::RoomMessage(content);
                 let client = client.clone();
                 tokio::task::spawn(async move { client.room_send(&id, message, None).await });

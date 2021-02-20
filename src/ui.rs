@@ -86,7 +86,7 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
         .map(|room| &room.message_list.messages)
         .unwrap_or(&VecDeque::new())
         .iter()
-        .map(|message| ListItem::new(format_message(message, &state.users)))
+        .map(|message| ListItem::new(format_message(message, &state.users))) // TODO those users are not really in sync rn
         .collect();
     let message_list = List::new(messages)
         .block(Block::default().borders(Borders::BOTTOM))
