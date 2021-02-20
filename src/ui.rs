@@ -74,7 +74,7 @@ fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Fr
     let room_list = List::new(rooms)
         .block(Block::default().borders(Borders::RIGHT))
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-        .highlight_symbol(">");
+        .highlight_symbol("*");
     let mut room_list_state = ListState::default();
     room_list_state.select(Some(state.current_room_index));
     frame.render_stateful_widget(room_list, region, &mut room_list_state);
@@ -90,7 +90,8 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
         .collect();
     let message_list = List::new(messages)
         .block(Block::default().borders(Borders::BOTTOM))
-        .highlight_symbol(">");
+        .highlight_style(Style::default().fg(Color::Yellow))
+        .highlight_symbol("*");
     let mut message_list_state = ListState::default();
     message_list_state.select(state.current_room().map(|r| r.message_list.current_index));
     frame.render_stateful_widget(message_list, region, &mut message_list_state);
