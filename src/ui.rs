@@ -92,11 +92,7 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
         .block(Block::default().borders(Borders::BOTTOM))
         .highlight_symbol(">");
     let mut message_list_state = ListState::default();
-    message_list_state.select(
-        state
-            .current_room()
-            .map(|r| r.message_list.current_index),
-    );
+    message_list_state.select(state.current_room().map(|r| r.message_list.current_index));
     frame.render_stateful_widget(message_list, region, &mut message_list_state);
 }
 

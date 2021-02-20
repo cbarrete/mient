@@ -62,18 +62,19 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn new(name: String, id: RoomId, notifications: u64) -> Self {
+    pub fn new(name: String, id: RoomId, notifications: u64, prev_batch: Option<String>) -> Self {
         Self {
             name,
             id,
             message_list: MessageList::new(),
             notifications,
-            prev_batch: None,
+            prev_batch,
         }
     }
 }
 
 pub struct State {
+    pub user_id: UserId,
     pub input: String,
     pub current_room_index: usize,
     pub users: HashMap<UserId, String>,
@@ -81,12 +82,38 @@ pub struct State {
 }
 
 impl State {
-    pub fn new() -> Self {
+    pub async fn from_client(
+        client: matrix_sdk::Client,
+        tx: tokio::sync::mpsc::UnboundedSender<Event>,
+    ) -> Self {
+        let mut rooms = Vec::new();
+        for room in client.joined_rooms() {
+            // TODO get initial state from state store when the SDK supports it
+            let prev_batch = client
+                .get_joined_room(room.room_id())
+                .map(|r| r.last_prev_batch())
+                .unwrap_or(None);
+            let mut mient_room = Room::new(
+                room.display_name().await.unwrap(),
+                room.room_id().clone(),
+                room.unread_notification_counts().notification_count,
+                prev_batch,
+            );
+
+            crate::matrix::fetch_old_messages(
+                room.room_id().clone(),
+                &mut mient_room,
+                client.clone(),
+                tx.clone(),
+            );
+            rooms.push(mient_room);
+        }
         Self {
             input: String::new(),
             current_room_index: 0,
             users: HashMap::new(),
-            rooms: Vec::new(),
+            rooms,
+            user_id: client.user_id().await.unwrap(),
         }
     }
 
@@ -116,35 +143,6 @@ impl State {
             }
         }
         None
-    }
-
-    pub async fn populate(
-        &mut self,
-        client: matrix_sdk::Client,
-        tx: tokio::sync::mpsc::UnboundedSender<Event>,
-    ) {
-        let joined_rooms = client.joined_rooms();
-        for room in joined_rooms {
-            let mut mient_room = Room::new(
-                room.display_name().await.unwrap(),
-                room.room_id().clone(),
-                room.unread_notification_counts().notification_count,
-            );
-
-            // TODO get initial state from state store when the SDK supports it
-            let prev_batch = client
-                .get_joined_room(room.room_id())
-                .map(|r| r.last_prev_batch())
-                .unwrap_or(None);
-            mient_room.prev_batch = prev_batch;
-            crate::matrix::fetch_old_messages(
-                room.room_id().clone(),
-                &mut mient_room,
-                client.clone(),
-                tx.clone(),
-            );
-            self.rooms.push(mient_room);
-        }
     }
 
     pub fn change_current_room(&mut self, increment: i32) {
