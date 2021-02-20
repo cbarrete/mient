@@ -21,6 +21,8 @@ it isn't changed.
 - `Ctrl-s` to load old messages (not fully functional yet)
 - `Up/Down` to select the previous/next message
 
+Sending a message while another one is selected will send a reply.
+
 ## TODO
 
 - Manage access tokens and restore logins
@@ -33,12 +35,10 @@ it isn't changed.
   - Scrolling
   - Nice colors
   - Timestamps
-  - Selection (for replies, redactions and edits)
   - Keep track of max prefix (username/userid/ts) width and align messages
 - External editor
 - Read receipts
 - Better room list (consistent ordering)
 - Get initial state from the state store when it supports it again
-- Replies
 - Redactions
 - Print events like calls in the timeline
