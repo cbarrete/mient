@@ -39,15 +39,15 @@ impl MessageList {
     }
 
     pub fn push_new(&mut self, message: Message) {
-        self.messages.push_back(message);
         if self.current_index == self.messages.len() {
             self.current_index += 1;
         }
+        self.messages.push_back(message);
     }
 
     pub fn push_old(&mut self, message: Message) {
         self.messages.push_front(message);
-        self.current_index = std::cmp::min(self.current_index + 1, self.messages.len() - 1);
+        self.current_index += 1;
     }
 }
 
@@ -144,7 +144,7 @@ impl State {
         if let Some(current_room) = self.get_current_room_mut() {
             let message_list = &mut current_room.message_list;
             message_list.current_index = (message_list.current_index as i8 + increment)
-                .clamp(0, message_list.messages.len() as i8 - 1)
+                .clamp(0, message_list.messages.len() as i8)
                 as usize;
         }
     }
