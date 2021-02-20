@@ -82,7 +82,7 @@ fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Fr
 
 fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
     let messages: Vec<ListItem> = state
-        .get_current_room()
+        .current_room()
         .map(|room| &room.message_list.messages)
         .unwrap_or(&VecDeque::new())
         .iter()
@@ -94,7 +94,7 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
     let mut message_list_state = ListState::default();
     message_list_state.select(
         state
-            .get_current_room()
+            .current_room()
             .map(|r| r.message_list.current_index),
     );
     frame.render_stateful_widget(message_list, region, &mut message_list_state);

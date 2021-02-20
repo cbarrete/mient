@@ -32,7 +32,7 @@ fn handle_keyboard_event(
 ) -> bool {
     match key {
         Key::Char('\n') => {
-            if let Some(room) = state.get_current_room() {
+            if let Some(room) = state.current_room() {
                 if state.input.is_empty() {
                     return true;
                 }
@@ -56,7 +56,7 @@ fn handle_keyboard_event(
         Key::Ctrl('p') => state.change_current_room(-1),
         Key::Ctrl('n') => state.change_current_room(1),
         Key::Up => {
-            if let Some(mut room) = state.get_current_room_mut() {
+            if let Some(mut room) = state.current_room_mut() {
                 if room.message_list.current_index == 0 {
                     crate::matrix::fetch_old_messages(
                         room.id.clone(),
@@ -72,7 +72,7 @@ fn handle_keyboard_event(
         Key::Down => state.change_current_message(1),
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
-            if let Some(mut room) = state.get_current_room_mut() {
+            if let Some(mut room) = state.current_room_mut() {
                 crate::matrix::fetch_old_messages(
                     room.id.clone(),
                     &mut room,

@@ -90,12 +90,12 @@ impl State {
         }
     }
 
-    pub fn get_current_room(&self) -> Option<&Room> {
+    pub fn current_room(&self) -> Option<&Room> {
         self.rooms.get(self.current_room_index)
     }
 
     #[allow(dead_code)]
-    pub fn get_current_room_mut(&mut self) -> Option<&mut Room> {
+    pub fn current_room_mut(&mut self) -> Option<&mut Room> {
         self.rooms.get_mut(self.current_room_index)
     }
 
@@ -153,7 +153,7 @@ impl State {
     }
 
     pub fn change_current_message(&mut self, increment: i32) {
-        if let Some(current_room) = self.get_current_room_mut() {
+        if let Some(current_room) = self.current_room_mut() {
             let message_list = &mut current_room.message_list;
             message_list.current_index = (message_list.current_index as i32 + increment)
                 .clamp(0, message_list.messages.len() as i32)
