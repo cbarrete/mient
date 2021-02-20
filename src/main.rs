@@ -13,8 +13,16 @@ use config::MientConfig;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // tracing_subscriber::fmt::init();
     let home = std::env::var("HOME")?;
-    let mient_config =
-        config::MientConfig::get(&format!("{}/{}", &home, ".config/mient/config.json"))?;
+    let mut config_path = format!("{}/{}", &home, ".config/mient/config.json");
+    let mut args: Vec<String> = Vec::new();
+    for arg in std::env::args() {
+        if arg.starts_with("--config=") {
+            config_path = arg.strip_prefix("--config=").unwrap().to_string()
+        } else {
+            args.push(arg)
+        }
+    }
+    let mient_config = config::MientConfig::get(&config_path)?;
 
     let client_config =
         matrix_sdk::ClientConfig::new().store_path(&format!("{}/{}", home, ".local/share/mient"));
@@ -22,7 +30,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Couldn't parse the homeserver URL, you might have forgotten to prefix https://");
     let mut client = matrix_sdk::Client::new_with_config(homeserver_url, client_config)?;
 
-    let args: Vec<String> = std::env::args().collect();
     match args.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[1..] {
         [] => {
             login(&mient_config, &mut client).await?;
