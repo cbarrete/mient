@@ -28,7 +28,6 @@ Sending a message while another one is selected will send a reply.
 - Manage access tokens and restore logins
 - Manage device ids
 - Respond to room key requests
-- Device verification
 - Much better message handling, probably with a VecDeque for easy backfilling
 - Look into other TUI frameworks, especially https://github.com/Gyscos/Cursive
 - Custom message room widget
