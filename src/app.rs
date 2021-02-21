@@ -10,14 +10,15 @@ use crate::ui;
 
 pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::error::Error>> {
     // SETUP COMMUNICATION
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let (matrix_tx, mut matrix_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (mient_tx, mut mient_rx) = tokio::sync::mpsc::unbounded_channel();
 
     client
-        .set_event_handler(Box::new(matrix::MatrixBroker::new(tx.clone())))
+        .set_event_handler(Box::new(matrix::MatrixBroker::new(matrix_tx.clone())))
         .await;
 
     // SETUP LOCAL STATE
-    let mut state = state::State::from_client(client.clone(), tx.clone()).await;
+    let mut state = state::State::from_client(client.clone(), matrix_tx.clone()).await;
 
     // SETUP TERMINAL
     let stdout = std::io::stdout().into_raw_mode()?;
@@ -26,24 +27,27 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     let mut terminal = tui::Terminal::new(backend)?;
 
     // EVENT LOOP
-    spawn_matrix_sync_task(client.clone(), matrix::MatrixBroker::new(tx.clone()));
-    let input_handle = spawn_input_task(tx.clone());
-    spawn_tick_task(tx.clone());
+    spawn_matrix_sync_task(client.clone(), matrix::MatrixBroker::new(matrix_tx.clone()));
+    let input_handle = spawn_input_task(mient_tx.clone());
+    spawn_tick_task(mient_tx.clone());
 
-    let event_tx = tx.clone();
-
+    let event_tx = matrix_tx.clone();
     loop {
         ui::draw(&mut terminal, &mut state)?;
-        // TODO passing that event_tx probably isn't the cleanest way to do that, I probably want a
-        // struct that owns a MatrixBroker and handles matrix operations (sending, requesting old
-        // messages, etc.)
-        if !events::handle_event(&mut rx, &mut state, &mut client, &event_tx).await {
-            break;
+        tokio::select! {
+            event = mient_rx.recv() => {
+                if !events::handle_mient_event(event.unwrap(), &mut state, &mut client, &event_tx).await {
+                    break;
+                }
+            }
+            event = matrix_rx.recv() => {
+                events::handle_matrix_event(event.unwrap(), &mut state).await;
+            }
         }
     }
 
-    rx.close();
-    // FIXME this join requires an additional key input
+    matrix_rx.close();
+    mient_rx.close();
     let _ = tokio::join!(input_handle);
     drop(terminal);
 
@@ -68,12 +72,12 @@ fn spawn_matrix_sync_task(
 }
 
 fn spawn_input_task(
-    tx: tokio::sync::mpsc::UnboundedSender<events::Event>,
+    tx: tokio::sync::mpsc::UnboundedSender<events::MientEvent>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
         for event in std::io::stdin().keys() {
             if let Ok(key) = event {
-                if let Err(_) = tx.send(events::Event::Keyboard(key)) {
+                if let Err(_) = tx.send(events::MientEvent::Keyboard(key)) {
                     return;
                 }
                 if key == termion::event::Key::Esc {
@@ -85,11 +89,11 @@ fn spawn_input_task(
 }
 
 fn spawn_tick_task(
-    tx: tokio::sync::mpsc::UnboundedSender<events::Event>,
+    tx: tokio::sync::mpsc::UnboundedSender<events::MientEvent>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
         loop {
-            if let Err(_) = tx.send(events::Event::Tick) {
+            if let Err(_) = tx.send(events::MientEvent::Tick) {
                 return;
             }
             std::thread::sleep(std::time::Duration::from_millis(100));

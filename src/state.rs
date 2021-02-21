@@ -5,7 +5,7 @@ use matrix_sdk::identifiers::RoomId;
 use matrix_sdk::identifiers::UserId;
 use matrix_sdk::{events::room::message::MessageEventContent, identifiers::EventId};
 
-use crate::events::Event;
+use crate::events::MatrixEvent;
 
 #[derive(Debug, Clone)]
 pub struct Message {
@@ -86,7 +86,7 @@ pub struct State {
 impl State {
     pub async fn from_client(
         client: matrix_sdk::Client,
-        tx: tokio::sync::mpsc::UnboundedSender<Event>,
+        tx: tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
     ) -> Self {
         let mut rooms = Vec::new();
         for room in client.joined_rooms() {

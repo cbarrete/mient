@@ -18,9 +18,8 @@ pub enum MatrixEvent {
 }
 
 #[derive(Debug)]
-pub enum Event {
+pub enum MientEvent {
     Keyboard(Key),
-    Matrix(MatrixEvent),
     Tick,
 }
 
@@ -28,7 +27,7 @@ fn handle_keyboard_event(
     key: Key,
     state: &mut State,
     client: &mut matrix_sdk::Client,
-    tx: &tokio::sync::mpsc::UnboundedSender<Event>,
+    tx: &tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
 ) -> bool {
     match key {
         Key::Char('\n') => {
@@ -107,25 +106,19 @@ fn handle_keyboard_event(
     true
 }
 
-pub async fn handle_event(
-    rx: &mut tokio::sync::mpsc::UnboundedReceiver<Event>,
+pub async fn handle_mient_event(
+    event: MientEvent,
     state: &mut State,
     client: &mut matrix_sdk::Client,
-    tx: &tokio::sync::mpsc::UnboundedSender<Event>,
+    tx: &tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
 ) -> bool {
-    let event = if let Some(e) = rx.recv().await {
-        e
-    } else {
-        return false;
-    };
     match event {
-        Event::Keyboard(key) => handle_keyboard_event(key, state, client, &tx),
-        Event::Tick => true,
-        Event::Matrix(e) => handle_matrix_event(e, state),
+        MientEvent::Keyboard(key) => handle_keyboard_event(key, state, client, &tx),
+        MientEvent::Tick => true,
     }
 }
 
-fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
+pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
     match event {
         MatrixEvent::RoomName { id, name } => match state.get_room_mut(&id) {
             Some(room) => room.name = name,
@@ -152,5 +145,4 @@ fn handle_matrix_event(event: MatrixEvent, state: &mut State) -> bool {
                 .map(|room| room.prev_batch = Some(prev_batch));
         }
     }
-    true
 }

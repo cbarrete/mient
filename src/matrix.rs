@@ -28,7 +28,7 @@ pub fn fetch_old_messages(
     room_id: matrix_sdk::identifiers::RoomId,
     room: &mut crate::state::Room,
     client: matrix_sdk::Client,
-    tx: tokio::sync::mpsc::UnboundedSender<Event>,
+    tx: tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
 ) {
     // TODO do this when the SDK also keeps track of the prev_batch token when it comes from
     // discrete request responses
@@ -55,10 +55,10 @@ pub fn fetch_old_messages(
             Err(_) => return,
         };
         if let Some(prev_batch) = response.end {
-            if let Err(e) = tx.send(Event::Matrix(MatrixEvent::PrevBatch {
+            if let Err(e) = tx.send(MatrixEvent::PrevBatch {
                 id: room_id.clone(),
                 prev_batch,
-            })) {
+            }) {
                 crate::log::error(&e.to_string());
             }
         };
@@ -73,7 +73,7 @@ pub fn fetch_old_messages(
             match event {
                 matrix_sdk::events::AnyRoomEvent::Message(m) => match m {
                     matrix_sdk::events::AnyMessageEvent::RoomMessage(message) => {
-                        tx.send(Event::Matrix(MatrixEvent::OldMessage {
+                        tx.send(MatrixEvent::OldMessage {
                             id: room_id.clone(),
                             message: Message::new(
                                 message.sender,
@@ -81,7 +81,7 @@ pub fn fetch_old_messages(
                                 message.content,
                                 message.origin_server_ts,
                             ),
-                        }))
+                        })
                         .unwrap();
                     }
                     _ => crate::log::info(&format!("{:?}", m)),
@@ -98,16 +98,16 @@ pub fn fetch_old_messages(
 }
 
 pub struct MatrixBroker {
-    pub tx: tokio::sync::mpsc::UnboundedSender<Event>,
+    pub tx: tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
 }
 
 impl MatrixBroker {
-    pub fn new(tx: tokio::sync::mpsc::UnboundedSender<Event>) -> Self {
+    pub fn new(tx: tokio::sync::mpsc::UnboundedSender<MatrixEvent>) -> Self {
         Self { tx }
     }
 
     fn publish(&self, event: MatrixEvent) {
-        if let Err(err) = self.tx.send(Event::Matrix(event)) {
+        if let Err(err) = self.tx.send(event) {
             crate::log::error(&err.to_string())
         }
     }
