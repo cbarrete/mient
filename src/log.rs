@@ -16,4 +16,6 @@ fn log(message: &str, path: &str) {
         .unwrap();
 
     file.write_all(message.as_bytes()).unwrap();
+    file.write_all(b"\n").unwrap();
+    file.flush().unwrap();
 }

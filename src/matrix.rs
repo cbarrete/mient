@@ -84,16 +84,16 @@ pub fn fetch_old_messages(
                         }))
                         .unwrap();
                     }
-                    _ => crate::log::info(&format!("{:?}\n", m)),
+                    _ => crate::log::info(&format!("{:?}", m)),
                 },
-                _ => crate::log::info(&format!("{:?}\n", event)),
+                _ => crate::log::info(&format!("{:?}", event)),
             }
         }
-        crate::log::info("state\n");
+        crate::log::info("state");
         for e in response.state {
-            crate::log::info(&format!("{:?}\n", e));
+            crate::log::info(&format!("{:?}", e));
         }
-        crate::log::info("\n\n");
+        crate::log::info("\n");
     });
 }
 
