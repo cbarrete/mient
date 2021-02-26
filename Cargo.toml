@@ -5,7 +5,6 @@ authors = ["Cédric Barreteau"]
 edition = "2018"
 
 [dependencies]
-matrix-sdk = { git = "https://github.com/matrix-org/matrix-rust-sdk" }
 url = "*"
 unicode-width = "*"
 
@@ -17,3 +16,8 @@ async-trait = "*"
 
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
+
+[dependencies.matrix-sdk]
+git = "https://github.com/matrix-org/matrix-rust-sdk"
+default-features = false
+features = ["encryption", "sled_cryptostore", "sled_state_store", "rustls-tls"]
