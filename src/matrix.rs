@@ -8,16 +8,29 @@ use matrix_sdk::{
 use crate::events::*;
 use crate::state::Message;
 
+pub fn format_message_body<'a>(content: &'a room::message::MessageEventContent) -> &'a str {
+    use matrix_sdk::events::room::message::MessageEventContent::*;
+    match content {
+        Audio(content) => &content.body,
+        Emote(content) => &content.body,
+        File(content) => &content.body,
+        Image(content) => &content.body,
+        Location(content) => &content.body,
+        Notice(content) => &content.body,
+        ServerNotice(content) => &content.body,
+        Text(content) => &content.body,
+        Video(content) => &content.body,
+        VerificationRequest(content) => &content.body,
+        _ => "(mient message) plz implement me!",
+    }
+}
+
 pub fn format_reply_content(
     replied_to_content: room::message::MessageEventContent,
     sender: UserId,
     reply: String,
 ) -> String {
-    let body = match replied_to_content {
-        room::message::MessageEventContent::Text(text) => text.body,
-        other => format!("{:?}", other),
-    };
-    let quoted_replied = body
+    let quoted_replied = format_message_body(&replied_to_content)
         .lines()
         // skip quoted content, those are previous replied_to
         .skip_while(|s| s.starts_with(">"))
