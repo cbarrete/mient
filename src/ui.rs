@@ -73,8 +73,11 @@ fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
             let mut spans_vec = Vec::with_capacity(user_ids.len() * 2 + 1);
             spans_vec.push(Span::styled(emoji, Style::default().fg(Color::Yellow)));
             for user_id in user_ids {
-                spans_vec.push(Span::raw(" "));
-                spans_vec.push(Span::raw(user_id.as_str()));
+                spans_vec.push(Span::styled(" ", Style::default().fg(Color::Yellow)));
+                spans_vec.push(Span::styled(
+                    user_id.as_str(),
+                    Style::default().fg(Color::Yellow),
+                ));
             }
             text.extend(Text::from(Spans::from(spans_vec)))
         }
