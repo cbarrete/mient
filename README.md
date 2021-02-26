@@ -20,23 +20,24 @@ it isn't changed.
 - `Ctrl-p/n` to select the previous/next room
 - `Ctrl-s` to load old messages (not fully functional yet)
 - `Up/Down` to select the previous/next message
+- `Home/End` to select the first/last message
 
 Sending a message while another one is selected will send a reply.
+
+Scrolling past the first message with `Up` or `Home` fetches older messages.
 
 ## TODO
 
 - Manage access tokens and restore logins
 - Manage device ids
 - Respond to room key requests
-- Much better message handling, probably with a VecDeque for easy backfilling
 - Look into other TUI frameworks, especially https://github.com/Gyscos/Cursive
 - Custom message room widget
-  - Nice colors
   - Timestamps
-  - Keep track of max prefix (username/userid/ts) width and align messages
 - External editor
 - Read receipts
 - Better room list (consistent ordering)
 - Get initial state from the state store when it supports it again
 - Redactions
-- Print events like calls in the timeline
+- Media handler(s)
+- Notifications handler
