@@ -38,6 +38,18 @@ fn make_layout(terminal_size: Rect) -> MientLayout {
     }
 }
 
+fn color_hash(user: &str) -> Style {
+    let first_letter = user.chars().next().unwrap() as u32;
+    let color = match first_letter & 0b11 {
+        0 => Color::Cyan,
+        1 => Color::Red,
+        2 => Color::Blue,
+        3 => Color::Magenta,
+        _ => unreachable!("Can't you count?"),
+    };
+    Style::default().fg(color)
+}
+
 fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
     // TODO users are not really in sync rn
     let sender = if let Some(sender) = state.users.get(&message.sender) {
@@ -47,10 +59,7 @@ fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
     };
     let body = crate::utils::format_message_body(&message.content);
     let mut text;
-    let mut spans_vec = vec![
-        Span::styled(sender, Style::default().fg(Color::Cyan)),
-        Span::raw(": "),
-    ];
+    let mut spans_vec = vec![Span::styled(sender, color_hash(sender)), Span::raw(": ")];
     if let Some(pos) = body.find('\n') {
         spans_vec.push(Span::from(&body[..pos]));
         text = Text::from(Spans::from(spans_vec));
