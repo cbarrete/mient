@@ -117,17 +117,6 @@ fn handle_keyboard_event(
         }
         Key::Down => state.change_current_message(crate::state::ListPosition::Relative(1)),
         Key::End => state.change_current_message(crate::state::ListPosition::Last),
-        Key::Ctrl('r') => {}
-        Key::Ctrl('s') => {
-            if let Some(mut room) = state.current_room_mut() {
-                crate::matrix::fetch_old_messages(
-                    room.id.clone(),
-                    &mut room,
-                    client.clone(),
-                    tx.clone(),
-                );
-            }
-        }
         Key::Esc => return false,
         _ => {}
     };
