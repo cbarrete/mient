@@ -96,7 +96,7 @@ fn handle_keyboard_event(
         Key::Ctrl('u') => state.input.clear(),
         Key::Ctrl('p') => state.change_current_room(-1),
         Key::Ctrl('n') => state.change_current_room(1),
-        Key::Up => {
+        Key::Up | Key::Home => {
             if let Some(mut room) = state.current_room_mut() {
                 if room.message_list.current_index == 0 {
                     crate::matrix::fetch_old_messages(
@@ -106,12 +106,16 @@ fn handle_keyboard_event(
                         tx.clone(),
                     );
                 } else {
-                    state.change_current_message(crate::state::ListPosition::Relative(-1));
+                    let position = match key {
+                        Key::Up => crate::state::ListPosition::Relative(-1),
+                        Key::Home => crate::state::ListPosition::First,
+                        _ => unreachable!(),
+                    };
+                    state.change_current_message(position);
                 }
             }
         }
         Key::Down => state.change_current_message(crate::state::ListPosition::Relative(1)),
-        Key::Home => state.change_current_message(crate::state::ListPosition::First),
         Key::End => state.change_current_message(crate::state::ListPosition::Last),
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
