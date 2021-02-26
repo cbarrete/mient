@@ -90,7 +90,6 @@ pub fn fetch_old_messages(
                     AnyMessageEvent::Reaction(evt) => {
                         let relation = evt.content.relation;
                         tx.send(MatrixEvent::Reaction {
-                            id: room_id.clone(),
                             event_id: relation.event_id,
                             user_id: evt.sender,
                             emoji: relation.emoji,
@@ -125,18 +124,13 @@ impl MatrixBroker {
         }
     }
 
-    fn handle_timeline(
-        &self,
-        room_id: RoomId,
-        timeline: matrix_sdk::deserialized_responses::Timeline,
-    ) {
+    fn handle_timeline(&self, timeline: matrix_sdk::deserialized_responses::Timeline) {
         for event in timeline.events {
             match event {
                 AnySyncRoomEvent::Message(msg) => {
                     if let AnySyncMessageEvent::Reaction(evt) = msg {
                         let relation = evt.content.relation;
                         self.publish(MatrixEvent::Reaction {
-                            id: room_id.clone(),
                             event_id: relation.event_id,
                             user_id: evt.sender,
                             emoji: relation.emoji,
@@ -159,7 +153,7 @@ impl MatrixBroker {
                 id: room_id.clone(),
                 count: room.unread_notifications.notification_count,
             });
-            self.handle_timeline(room_id, room.timeline);
+            self.handle_timeline(room.timeline);
         }
         for event in response.to_device.events {
             self.handle_to_device(event);

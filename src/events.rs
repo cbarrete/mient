@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use matrix_sdk::identifiers::{EventId, RoomId, UserId};
 use termion::event::Key;
@@ -33,7 +33,6 @@ pub enum MatrixEvent {
         prev_batch: String,
     },
     Reaction {
-        id: RoomId,
         event_id: EventId,
         user_id: UserId,
         emoji: String,
@@ -168,22 +167,17 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
                 .map(|room| room.prev_batch = Some(prev_batch));
         }
         MatrixEvent::Reaction {
-            id,
             event_id,
             user_id,
             emoji,
         } => {
-            if let Some(msg) = state.get_room_mut(&id).and_then(|room| {
-                room.message_list
-                    .messages
-                    .iter_mut()
-                    .find(|msg| msg.id == event_id)
-            }) {
-                msg.reactions
-                    .entry(emoji)
-                    .or_insert_with(|| HashSet::new())
-                    .insert(user_id);
-            }
+            state
+                .reactions
+                .entry(event_id)
+                .or_insert_with(|| HashMap::new())
+                .entry(emoji)
+                .or_insert_with(|| HashSet::new())
+                .insert(user_id);
         }
     }
 }

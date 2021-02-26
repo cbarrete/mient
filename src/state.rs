@@ -13,7 +13,6 @@ pub struct Message {
     pub id: EventId,
     pub content: MessageEventContent,
     pub ts: SystemTime,
-    pub reactions: HashMap<String, HashSet<UserId>>,
 }
 
 impl Message {
@@ -23,7 +22,6 @@ impl Message {
             id,
             content,
             ts,
-            reactions: HashMap::new(),
         }
     }
 }
@@ -83,6 +81,7 @@ pub struct State {
     pub current_room_index: usize,
     pub users: HashMap<UserId, String>,
     pub rooms: Vec<Room>,
+    pub reactions: HashMap<EventId, HashMap<String, HashSet<UserId>>>,
 }
 
 impl State {
@@ -118,6 +117,7 @@ impl State {
             users: HashMap::new(),
             rooms,
             user_id: client.user_id().await.unwrap(),
+            reactions: HashMap::new(),
         }
     }
 

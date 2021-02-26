@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use matrix_sdk::identifiers::UserId;
 use tui::style::Modifier;
 use tui::style::Style;
 use tui::text::Text;
@@ -41,8 +38,9 @@ fn make_layout(terminal_size: Rect) -> MientLayout {
     }
 }
 
-fn format_message<'a>(message: &'a Message, users: &'a HashMap<UserId, String>) -> Text<'a> {
-    let sender = if let Some(sender) = users.get(&message.sender) {
+fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
+    // TODO users are not really in sync rn
+    let sender = if let Some(sender) = state.users.get(&message.sender) {
         sender
     } else {
         message.sender.localpart()
@@ -64,8 +62,10 @@ fn format_message<'a>(message: &'a Message, users: &'a HashMap<UserId, String>) 
         spans_vec.push(Span::from(body));
         text = Text::from(Spans::from(spans_vec))
     }
-    for (emoji, _user_ids) in &message.reactions {
-        text.extend(Text::from(Spans::from(vec![Span::raw(emoji)])))
+    if let Some(reactions) = state.reactions.get(&message.id) {
+        for (emoji, _user_ids) in reactions {
+            text.extend(Text::from(Spans::from(vec![Span::raw(emoji)])))
+        }
     }
     text
 }
@@ -99,7 +99,7 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
             .message_list
             .messages
             .iter()
-            .map(|message| ListItem::new(format_message(message, &state.users))) // TODO those users are not really in sync rn
+            .map(|message| ListItem::new(format_message(message, &state)))
             .collect();
         let message_list = List::new(messages)
             .block(Block::default().borders(Borders::BOTTOM))
