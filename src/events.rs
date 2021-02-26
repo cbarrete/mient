@@ -77,7 +77,7 @@ fn handle_keyboard_event(
                     };
                     text_content.relates_to = Some(relates_to);
                     text_content.body =
-                        crate::matrix::format_reply_content(msg.content, msg.sender, text);
+                        crate::utils::format_reply_content(msg.content, msg.sender, text);
                 };
 
                 let content = message::MessageEventContent::Text(text_content);

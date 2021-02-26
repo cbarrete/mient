@@ -45,7 +45,7 @@ fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
     } else {
         message.sender.localpart()
     };
-    let body = crate::matrix::format_message_body(&message.content);
+    let body = crate::utils::format_message_body(&message.content);
     let mut text;
     let mut spans_vec = vec![
         Span::styled(sender, Style::default().fg(Color::Cyan)),

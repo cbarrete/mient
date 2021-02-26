@@ -6,6 +6,7 @@ mod log;
 mod matrix;
 mod state;
 mod ui;
+mod utils;
 
 use config::MientConfig;
 
