@@ -151,15 +151,25 @@ impl State {
 
     pub fn change_current_room(&mut self, increment: i32) {
         self.current_room_index = (self.current_room_index as i32 + increment)
-            .rem_euclid(self.rooms.len() as i32) as usize;
+            .rem_euclid(self.rooms.len() as i32) as usize
     }
 
-    pub fn change_current_message(&mut self, increment: i32) {
+    pub fn change_current_message(&mut self, position: ListPosition) {
         if let Some(current_room) = self.current_room_mut() {
             let message_list = &mut current_room.message_list;
-            message_list.current_index = (message_list.current_index as i32 + increment)
-                .clamp(0, message_list.messages.len() as i32)
-                as usize;
+            message_list.current_index = match position {
+                ListPosition::First => 0,
+                ListPosition::Last => message_list.messages.len(),
+                ListPosition::Relative(inc) => (message_list.current_index as i32 + inc)
+                    .clamp(0, message_list.messages.len() as i32)
+                    as usize,
+            }
         }
     }
+}
+
+pub enum ListPosition {
+    First,
+    Last,
+    Relative(i32),
 }

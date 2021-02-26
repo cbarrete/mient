@@ -106,11 +106,13 @@ fn handle_keyboard_event(
                         tx.clone(),
                     );
                 } else {
-                    state.change_current_message(-1);
+                    state.change_current_message(crate::state::ListPosition::Relative(-1));
                 }
             }
         }
-        Key::Down => state.change_current_message(1),
+        Key::Down => state.change_current_message(crate::state::ListPosition::Relative(1)),
+        Key::Home => state.change_current_message(crate::state::ListPosition::First),
+        Key::End => state.change_current_message(crate::state::ListPosition::Last),
         Key::Ctrl('r') => {}
         Key::Ctrl('s') => {
             if let Some(mut room) = state.current_room_mut() {
