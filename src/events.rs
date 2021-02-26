@@ -1,4 +1,6 @@
-use matrix_sdk::identifiers::RoomId;
+use std::collections::HashSet;
+
+use matrix_sdk::identifiers::{EventId, RoomId, UserId};
 use termion::event::Key;
 
 use crate::state::Message;
@@ -10,11 +12,32 @@ pub struct UserEvent;
 
 #[derive(Debug)]
 pub enum MatrixEvent {
-    RoomName { id: RoomId, name: String },
-    NewMessage { id: RoomId, message: Message },
-    OldMessage { id: RoomId, message: Message },
-    Notifications { id: RoomId, count: u64 },
-    PrevBatch { id: RoomId, prev_batch: String },
+    RoomName {
+        id: RoomId,
+        name: String,
+    },
+    NewMessage {
+        id: RoomId,
+        message: Message,
+    },
+    OldMessage {
+        id: RoomId,
+        message: Message,
+    },
+    Notifications {
+        id: RoomId,
+        count: u64,
+    },
+    PrevBatch {
+        id: RoomId,
+        prev_batch: String,
+    },
+    Reaction {
+        id: RoomId,
+        event_id: EventId,
+        user_id: UserId,
+        emoji: String,
+    },
 }
 
 #[derive(Debug)]
@@ -143,6 +166,24 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
             state
                 .get_room_mut(&id)
                 .map(|room| room.prev_batch = Some(prev_batch));
+        }
+        MatrixEvent::Reaction {
+            id,
+            event_id,
+            user_id,
+            emoji,
+        } => {
+            if let Some(msg) = state.get_room_mut(&id).and_then(|room| {
+                room.message_list
+                    .messages
+                    .iter_mut()
+                    .find(|msg| msg.id == event_id)
+            }) {
+                msg.reactions
+                    .entry(emoji)
+                    .or_insert_with(|| HashSet::new())
+                    .insert(user_id);
+            }
         }
     }
 }

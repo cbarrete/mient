@@ -41,7 +41,6 @@ fn make_layout(terminal_size: Rect) -> MientLayout {
     }
 }
 
-// TODO could return some fancy stuff for formatting
 fn format_message<'a>(message: &'a Message, users: &'a HashMap<UserId, String>) -> Text<'a> {
     let sender = if let Some(sender) = users.get(&message.sender) {
         sender
@@ -64,6 +63,9 @@ fn format_message<'a>(message: &'a Message, users: &'a HashMap<UserId, String>) 
     } else {
         spans_vec.push(Span::from(body));
         text = Text::from(Spans::from(spans_vec))
+    }
+    for (emoji, _user_ids) in &message.reactions {
+        text.extend(Text::from(Spans::from(vec![Span::raw(emoji)])))
     }
     text
 }

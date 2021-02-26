@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::SystemTime;
 
 use matrix_sdk::identifiers::RoomId;
@@ -13,6 +13,7 @@ pub struct Message {
     pub id: EventId,
     pub content: MessageEventContent,
     pub ts: SystemTime,
+    pub reactions: HashMap<String, HashSet<UserId>>,
 }
 
 impl Message {
@@ -22,6 +23,7 @@ impl Message {
             id,
             content,
             ts,
+            reactions: HashMap::new(),
         }
     }
 }

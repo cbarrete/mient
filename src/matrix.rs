@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 
-use matrix_sdk::{events::*, identifiers::UserId};
+use matrix_sdk::{
+    events::*,
+    identifiers::{RoomId, UserId},
+};
 
 use crate::events::*;
 use crate::state::Message;
@@ -25,7 +28,7 @@ pub fn format_reply_content(
 }
 
 pub fn fetch_old_messages(
-    room_id: matrix_sdk::identifiers::RoomId,
+    room_id: RoomId,
     room: &mut crate::state::Room,
     client: matrix_sdk::Client,
     tx: tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
@@ -71,16 +74,26 @@ pub fn fetch_old_messages(
                 }
             };
             match event {
-                matrix_sdk::events::AnyRoomEvent::Message(m) => match m {
-                    matrix_sdk::events::AnyMessageEvent::RoomMessage(message) => {
+                AnyRoomEvent::Message(m) => match m {
+                    AnyMessageEvent::RoomMessage(evt) => {
                         tx.send(MatrixEvent::OldMessage {
                             id: room_id.clone(),
                             message: Message::new(
-                                message.sender,
-                                message.event_id,
-                                message.content,
-                                message.origin_server_ts,
+                                evt.sender,
+                                evt.event_id,
+                                evt.content,
+                                evt.origin_server_ts,
                             ),
+                        })
+                        .unwrap();
+                    }
+                    AnyMessageEvent::Reaction(evt) => {
+                        let relation = evt.content.relation;
+                        tx.send(MatrixEvent::Reaction {
+                            id: room_id.clone(),
+                            event_id: relation.event_id,
+                            user_id: evt.sender,
+                            emoji: relation.emoji,
                         })
                         .unwrap();
                     }
@@ -112,6 +125,31 @@ impl MatrixBroker {
         }
     }
 
+    fn handle_timeline(
+        &self,
+        room_id: RoomId,
+        timeline: matrix_sdk::deserialized_responses::Timeline,
+    ) {
+        for event in timeline.events {
+            match event {
+                AnySyncRoomEvent::Message(msg) => {
+                    if let AnySyncMessageEvent::Reaction(evt) = msg {
+                        let relation = evt.content.relation;
+                        self.publish(MatrixEvent::Reaction {
+                            id: room_id.clone(),
+                            event_id: relation.event_id,
+                            user_id: evt.sender,
+                            emoji: relation.emoji,
+                        });
+                    }
+                }
+                AnySyncRoomEvent::State(_) => {}
+                AnySyncRoomEvent::RedactedMessage(_) => {}
+                AnySyncRoomEvent::RedactedState(_) => {}
+            }
+        }
+    }
+
     pub async fn handle_sync_response(
         &self,
         response: matrix_sdk::deserialized_responses::SyncResponse,
@@ -121,6 +159,7 @@ impl MatrixBroker {
                 id: room_id.clone(),
                 count: room.unread_notifications.notification_count,
             });
+            self.handle_timeline(room_id, room.timeline);
         }
         for event in response.to_device.events {
             self.handle_to_device(event);
