@@ -63,8 +63,14 @@ fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
         text = Text::from(Spans::from(spans_vec))
     }
     if let Some(reactions) = state.reactions.get(&message.id) {
-        for (emoji, _user_ids) in reactions {
-            text.extend(Text::from(Spans::from(vec![Span::raw(emoji)])))
+        for (emoji, user_ids) in reactions {
+            let mut spans_vec = Vec::with_capacity(user_ids.len() * 2 + 1);
+            spans_vec.push(Span::styled(emoji, Style::default().fg(Color::Yellow)));
+            for user_id in user_ids {
+                spans_vec.push(Span::raw(" "));
+                spans_vec.push(Span::raw(user_id.as_str()));
+            }
+            text.extend(Text::from(Spans::from(spans_vec)))
         }
     }
     text
