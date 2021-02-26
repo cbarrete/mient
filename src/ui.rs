@@ -118,7 +118,9 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
             .collect();
         let message_list = List::new(messages)
             .block(Block::default().borders(Borders::BOTTOM))
-            .highlight_style(Style::default().fg(Color::Yellow))
+            .highlight_style(
+                Style::default().add_modifier(Modifier::DIM | Modifier::BOLD | Modifier::ITALIC),
+            )
             .highlight_symbol("*");
         let mut message_list_state = ListState::default();
         message_list_state.select(state.current_room().map(|r| r.message_list.current_index));
