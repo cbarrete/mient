@@ -18,9 +18,7 @@ it isn't changed.
 ## Usage
 
 - `Ctrl-p/n` to select the previous/next room
-- `Ctrl-s` to load old messages (not fully functional yet)
-- `Up/Down` to select the previous/next message
-- `Home/End` to select the first/last message
+- `Up/Down/Home/End` to select the previous/next/first/last message
 
 Sending a message while another one is selected will send a reply.
 
