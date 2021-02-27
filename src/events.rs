@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use matrix_sdk::{events::MessageEvent, identifiers::{EventId, RoomId, UserId}};
 use matrix_sdk::events::room::message::MessageEventContent;
+use matrix_sdk::uuid::Uuid;
 use termion::event::Key;
 
 use crate::state::Room;
@@ -115,6 +116,28 @@ fn handle_keyboard_event(
         }
         Key::Down => state.change_current_message(crate::state::ListPosition::Relative(1)),
         Key::End => state.change_current_message(crate::state::ListPosition::Last),
+        Key::Delete => {
+            let room = match state.current_room() {
+                Some(r) => {r},
+                None => {return true},
+            };
+            let selected_message = room
+                .message_list
+                .messages
+                .get(room.message_list.current_index)
+                .map(|m| m.clone());
+            if let Some(msg) = selected_message {
+                use matrix_sdk::api::r0::redact::redact_event::Request;
+                let txn_id = Uuid::new_v4().to_string();
+                let client = client.clone();
+                tokio::task::spawn(async move {
+                    let request = Request::new(&msg.room_id, &msg.event_id, &txn_id);
+                    if let Err(e) = client.send(request, None).await {
+                        crate::log::error(&format!("{:?}", e));
+                    }
+                });
+            }
+        }
         Key::Esc => return false,
         _ => {}
     };
