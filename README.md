@@ -19,6 +19,7 @@ it isn't changed.
 
 - `Ctrl-p/n` to select the previous/next room
 - `Up/Down/Home/End` to select the previous/next/first/last message
+- `Del` to redact the selected message
 
 Sending a message while another one is selected will send a reply.
 
