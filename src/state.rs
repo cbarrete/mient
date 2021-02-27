@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::time::SystemTime;
 
-use matrix_sdk::identifiers::RoomId;
+use matrix_sdk::{events::MessageEvent, identifiers::RoomId};
 use matrix_sdk::identifiers::UserId;
 use matrix_sdk::{events::room::message::MessageEventContent, identifiers::EventId};
 
@@ -28,7 +28,7 @@ impl Message {
 
 #[derive(Debug)]
 pub struct MessageList {
-    pub messages: VecDeque<Message>,
+    pub messages: VecDeque<MessageEvent<MessageEventContent>>,
     pub current_index: usize,
 }
 
@@ -40,14 +40,14 @@ impl MessageList {
         }
     }
 
-    pub fn push_new(&mut self, message: Message) {
+    pub fn push_new(&mut self, message: MessageEvent<MessageEventContent>) {
         if self.current_index == self.messages.len() {
             self.current_index += 1;
         }
         self.messages.push_back(message);
     }
 
-    pub fn push_old(&mut self, message: Message) {
+    pub fn push_old(&mut self, message: MessageEvent<MessageEventContent>) {
         self.messages.push_front(message);
         self.current_index += 1;
     }

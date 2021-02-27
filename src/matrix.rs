@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use matrix_sdk::{events::*, identifiers::RoomId};
 
 use crate::events::*;
-use crate::state::Message;
 
 pub fn fetch_old_messages(
     room_id: RoomId,
@@ -55,18 +54,13 @@ pub fn fetch_old_messages(
                 AnyRoomEvent::Message(m) => match m {
                     AnyMessageEvent::RoomMessage(evt) => {
                         tx.send(MatrixEvent::OldMessage {
-                            id: room_id.clone(),
-                            message: Message::new(
-                                evt.sender,
-                                evt.event_id,
-                                evt.content,
-                                evt.origin_server_ts,
-                            ),
+                            message: evt,
                         })
                         .unwrap();
                     }
                     AnyMessageEvent::Reaction(evt) => {
                         let relation = evt.content.relation;
+                        // TODO
                         tx.send(MatrixEvent::Reaction {
                             event_id: relation.event_id,
                             user_id: evt.sender,
@@ -178,13 +172,7 @@ impl matrix_sdk::EventHandler for MatrixBroker {
     ) {
         if let matrix_sdk::RoomState::Joined(room) = room {
             self.publish(MatrixEvent::NewMessage {
-                id: room.room_id().clone(),
-                message: Message::new(
-                    event.sender.clone(),
-                    event.event_id.clone(),
-                    event.content.clone(),
-                    event.origin_server_ts.clone(),
-                ),
+                message: event.clone().into_full_event(room.room_id().clone()),
             });
         }
     }

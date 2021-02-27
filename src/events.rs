@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use matrix_sdk::identifiers::{EventId, RoomId, UserId};
+use matrix_sdk::{events::MessageEvent, identifiers::{EventId, RoomId, UserId}};
+use matrix_sdk::events::room::message::MessageEventContent;
 use termion::event::Key;
 
-use crate::state::Message;
 use crate::state::Room;
 use crate::state::State;
 
@@ -17,12 +17,10 @@ pub enum MatrixEvent {
         name: String,
     },
     NewMessage {
-        id: RoomId,
-        message: Message,
+        message: MessageEvent<MessageEventContent>,
     },
     OldMessage {
-        id: RoomId,
-        message: Message,
+        message: MessageEvent<MessageEventContent>,
     },
     Notifications {
         id: RoomId,
@@ -72,7 +70,7 @@ fn handle_keyboard_event(
                     use matrix_sdk::events::room::relationships;
                     let relates_to = message::Relation::Reply {
                         in_reply_to: relationships::InReplyTo {
-                            event_id: msg.id.clone(),
+                            event_id: msg.event_id.clone(),
                         },
                     };
                     text_content.relates_to = Some(relates_to);
@@ -141,13 +139,13 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
             Some(room) => room.name = name,
             None => state.rooms.push(Room::new(name, id, 0, None)),
         },
-        MatrixEvent::NewMessage { id, message } => {
-            if let Some(room) = state.get_room_mut(&id) {
+        MatrixEvent::NewMessage { message } => {
+            if let Some(room) = state.get_room_mut(&message.room_id) {
                 room.message_list.push_new(message)
             }
         }
-        MatrixEvent::OldMessage { id, message } => {
-            if let Some(room) = state.get_room_mut(&id) {
+        MatrixEvent::OldMessage { message } => {
+            if let Some(room) = state.get_room_mut(&message.room_id) {
                 room.message_list.push_old(message)
             }
         }

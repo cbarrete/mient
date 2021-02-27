@@ -1,3 +1,4 @@
+use matrix_sdk::events::{MessageEvent, room::message::MessageEventContent};
 use tui::style::Modifier;
 use tui::style::Style;
 use tui::text::Text;
@@ -10,7 +11,6 @@ use tui::{
 use tui::{style::Color, text::Span};
 use unicode_width::UnicodeWidthStr;
 
-use crate::state::Message;
 use crate::state::Room;
 use crate::state::State;
 
@@ -50,7 +50,7 @@ fn color_hash(user: &str) -> Style {
     Style::default().fg(color)
 }
 
-fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
+fn format_message<'a>(message: &'a MessageEvent<MessageEventContent>, state: &'a State) -> Text<'a> {
     // TODO users are not really in sync rn
     let sender = if let Some(sender) = state.users.get(&message.sender) {
         sender
@@ -68,7 +68,7 @@ fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
         spans_vec.push(Span::from(body));
         text = Text::from(Spans::from(spans_vec))
     }
-    if let Some(reactions) = state.reactions.get(&message.id) {
+    if let Some(reactions) = state.reactions.get(&message.event_id) {
         for (emoji, user_ids) in reactions {
             let mut spans_vec = Vec::with_capacity(user_ids.len() * 2 + 1);
             spans_vec.push(Span::styled(emoji, Style::default().fg(Color::Yellow)));
