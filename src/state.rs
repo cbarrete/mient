@@ -6,9 +6,15 @@ use matrix_sdk::{events::room::message::MessageEventContent, identifiers::EventI
 
 use crate::events::MatrixEvent;
 
+#[derive(Debug, Clone)]
+pub struct Message {
+    pub redacted: bool,
+    pub event: MessageEvent<MessageEventContent>,
+}
+
 #[derive(Debug)]
 pub struct MessageList {
-    pub messages: VecDeque<MessageEvent<MessageEventContent>>,
+    pub messages: VecDeque<Message>,
     pub current_index: usize,
 }
 
@@ -20,14 +26,14 @@ impl MessageList {
         }
     }
 
-    pub fn push_new(&mut self, message: MessageEvent<MessageEventContent>) {
+    pub fn push_new(&mut self, message: Message) {
         if self.current_index == self.messages.len() {
             self.current_index += 1;
         }
         self.messages.push_back(message);
     }
 
-    pub fn push_old(&mut self, message: MessageEvent<MessageEventContent>) {
+    pub fn push_old(&mut self, message: Message) {
         self.messages.push_front(message);
         self.current_index += 1;
     }

@@ -18,11 +18,11 @@ pub fn format_message_body<'a>(content: &'a MessageEventContent) -> &'a str {
 }
 
 pub fn format_reply_content(
-    replied_to_content: MessageEventContent,
-    sender: UserId,
-    reply: String,
+    replied_to_content: &MessageEventContent,
+    sender: &UserId,
+    reply: &String,
 ) -> String {
-    let quoted_replied = format_message_body(&replied_to_content)
+    let quoted_replied = format_message_body(replied_to_content)
         .lines()
         // skip quoted content, those are previous replied_to
         .skip_while(|s| s.starts_with(">"))

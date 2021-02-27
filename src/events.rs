@@ -5,6 +5,7 @@ use matrix_sdk::events::room::message::MessageEventContent;
 use matrix_sdk::uuid::Uuid;
 use termion::event::Key;
 
+use crate::state::Message;
 use crate::state::Room;
 use crate::state::State;
 
@@ -18,10 +19,10 @@ pub enum MatrixEvent {
         name: String,
     },
     NewMessage {
-        message: MessageEvent<MessageEventContent>,
+        event: MessageEvent<MessageEventContent>,
     },
     OldMessage {
-        message: MessageEvent<MessageEventContent>,
+        event: MessageEvent<MessageEventContent>,
     },
     Notifications {
         id: RoomId,
@@ -35,6 +36,10 @@ pub enum MatrixEvent {
         event_id: EventId,
         user_id: UserId,
         emoji: String,
+    },
+    Redaction {
+        room_id: RoomId,
+        redacted_id: EventId,
     },
 }
 
@@ -67,16 +72,16 @@ fn handle_keyboard_event(
                 let text: String = state.input.drain(..).collect();
                 let mut text_content = message::TextMessageEventContent::plain(text.clone());
 
-                if let Some(msg) = selected_message.clone() {
+                if let Some(msg) = selected_message {
                     use matrix_sdk::events::room::relationships;
                     let relates_to = message::Relation::Reply {
                         in_reply_to: relationships::InReplyTo {
-                            event_id: msg.event_id.clone(),
+                            event_id: msg.event.event_id.clone(),
                         },
                     };
                     text_content.relates_to = Some(relates_to);
                     text_content.body =
-                        crate::utils::format_reply_content(msg.content, msg.sender, text);
+                        crate::utils::format_reply_content(&msg.event.content, &msg.event.sender, &text);
                 };
 
                 let content = message::MessageEventContent::Text(text_content);
@@ -130,8 +135,10 @@ fn handle_keyboard_event(
                 use matrix_sdk::api::r0::redact::redact_event::Request;
                 let txn_id = Uuid::new_v4().to_string();
                 let client = client.clone();
+                let room_id = msg.event.room_id.clone();
+                let event_id = msg.event.event_id.clone();
                 tokio::task::spawn(async move {
-                    let request = Request::new(&msg.room_id, &msg.event_id, &txn_id);
+                    let request = Request::new(&room_id, &event_id, &txn_id);
                     if let Err(e) = client.send(request, None).await {
                         crate::log::error(&format!("{:?}", e));
                     }
@@ -162,14 +169,14 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
             Some(room) => room.name = name,
             None => state.rooms.push(Room::new(name, id, 0, None)),
         },
-        MatrixEvent::NewMessage { message } => {
-            if let Some(room) = state.get_room_mut(&message.room_id) {
-                room.message_list.push_new(message)
+        MatrixEvent::NewMessage { event } => {
+            if let Some(room) = state.get_room_mut(&event.room_id) {
+                room.message_list.push_new(Message { redacted: false, event })
             }
         }
-        MatrixEvent::OldMessage { message } => {
-            if let Some(room) = state.get_room_mut(&message.room_id) {
-                room.message_list.push_old(message)
+        MatrixEvent::OldMessage { event } => {
+            if let Some(room) = state.get_room_mut(&event.room_id) {
+                room.message_list.push_old(Message { redacted: false, event })
             }
         }
         MatrixEvent::Notifications { id, count } => {
@@ -194,6 +201,16 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
                 .entry(emoji)
                 .or_insert_with(|| HashSet::new())
                 .insert(user_id);
+        }
+        MatrixEvent::Redaction{ room_id, redacted_id } => {
+            if let Some(room) = state.rooms.iter_mut().find(|r| r.id == room_id) {
+                room.message_list
+                    .messages
+                    .iter_mut()
+                    .rev()
+                    .find(|msg| msg.event.event_id == redacted_id)
+                    .map(|msg| msg.redacted = true);
+            }
         }
     }
 }

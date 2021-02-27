@@ -1,4 +1,3 @@
-use matrix_sdk::events::{MessageEvent, room::message::MessageEventContent};
 use tui::style::Modifier;
 use tui::style::Style;
 use tui::text::Text;
@@ -11,6 +10,7 @@ use tui::{
 use tui::{style::Color, text::Span};
 use unicode_width::UnicodeWidthStr;
 
+use crate::state::Message;
 use crate::state::Room;
 use crate::state::State;
 
@@ -50,16 +50,19 @@ fn color_hash(user: &str) -> Style {
     Style::default().fg(color)
 }
 
-fn format_message<'a>(message: &'a MessageEvent<MessageEventContent>, state: &'a State) -> Text<'a> {
+fn format_message<'a>(message: &'a Message, state: &'a State) -> Text<'a> {
     // TODO users are not really in sync rn
-    let sender = if let Some(sender) = state.users.get(&message.sender) {
+    let sender = if let Some(sender) = state.users.get(&message.event.sender) {
         sender
     } else {
-        message.sender.localpart()
+        message.event.sender.localpart()
     };
-    let body = crate::utils::format_message_body(&message.content);
+    let body = crate::utils::format_message_body(&message.event.content);
     let mut text;
     let mut spans_vec = vec![Span::styled(sender, color_hash(sender)), Span::raw(": ")];
+    if message.redacted {
+        spans_vec.push(Span::styled("REDACTED ", Style::default().fg(Color::Red)))
+    }
     if let Some(pos) = body.find('\n') {
         spans_vec.push(Span::from(&body[..pos]));
         text = Text::from(Spans::from(spans_vec));
@@ -68,7 +71,7 @@ fn format_message<'a>(message: &'a MessageEvent<MessageEventContent>, state: &'a
         spans_vec.push(Span::from(body));
         text = Text::from(Spans::from(spans_vec))
     }
-    if let Some(reactions) = state.reactions.get(&message.event_id) {
+    if let Some(reactions) = state.reactions.get(&message.event.event_id) {
         for (emoji, user_ids) in reactions {
             let mut spans_vec = Vec::with_capacity(user_ids.len() * 2 + 1);
             spans_vec.push(Span::styled(emoji, Style::default().fg(Color::Yellow)));
