@@ -1,30 +1,10 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::time::SystemTime;
 
 use matrix_sdk::{events::MessageEvent, identifiers::RoomId};
 use matrix_sdk::identifiers::UserId;
 use matrix_sdk::{events::room::message::MessageEventContent, identifiers::EventId};
 
 use crate::events::MatrixEvent;
-
-#[derive(Debug, Clone)]
-pub struct Message {
-    pub sender: UserId,
-    pub id: EventId,
-    pub content: MessageEventContent,
-    pub ts: SystemTime,
-}
-
-impl Message {
-    pub fn new(sender: UserId, id: EventId, content: MessageEventContent, ts: SystemTime) -> Self {
-        Self {
-            sender,
-            id,
-            content,
-            ts,
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct MessageList {
