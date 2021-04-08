@@ -76,14 +76,15 @@ fn handle_keyboard_event(
                 let text: String = state.input.drain(..).collect();
                 let mut text_content = message::TextMessageEventContent::plain(text.clone());
 
+                let mut relates_to = None;
                 if let Some(msg) = selected_message {
                     use matrix_sdk::events::room::relationships;
-                    let relates_to = message::Relation::Reply {
+                    let reply = message::Relation::Reply {
                         in_reply_to: relationships::InReplyTo {
                             event_id: msg.event.event_id.clone(),
                         },
                     };
-                    text_content.relates_to = Some(relates_to);
+                    relates_to = Some(reply);
                     text_content.body = crate::utils::format_reply_content(
                         &msg.event.content,
                         &msg.event.sender,
@@ -91,7 +92,9 @@ fn handle_keyboard_event(
                     );
                 };
 
-                let content = message::MessageEventContent::Text(text_content);
+                let content = matrix_sdk::events::room::message::MessageType::Text(text_content);
+                let mut content = message::MessageEventContent::new(content);
+                content.relates_to = relates_to;
                 let message = matrix_sdk::events::AnyMessageEventContent::RoomMessage(content);
                 let client = client.clone();
                 tokio::task::spawn(async move { client.room_send(&id, message, None).await });

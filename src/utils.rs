@@ -1,8 +1,11 @@
-use matrix_sdk::{events::room::message::MessageEventContent, identifiers::UserId};
+use matrix_sdk::{
+    events::room::message::{MessageEventContent, MessageType},
+    identifiers::UserId,
+};
 
 pub fn format_message_body<'a>(content: &'a MessageEventContent) -> &'a str {
-    use MessageEventContent::*;
-    match content {
+    use MessageType::*;
+    match &content.msgtype {
         Audio(content) => &content.body,
         Emote(content) => &content.body,
         File(content) => &content.body,

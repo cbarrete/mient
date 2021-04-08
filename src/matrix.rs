@@ -1,9 +1,6 @@
 use async_trait::async_trait;
 
-use matrix_sdk::{
-    events::*,
-    identifiers::RoomId,
-};
+use matrix_sdk::{events::*, identifiers::RoomId};
 
 use crate::{events::*, state::Room};
 
@@ -52,7 +49,12 @@ pub fn fetch_old_messages(
             &prev_batch,
         );
         request.limit = matrix_sdk::UInt::new(50).unwrap();
-        let response = match client.room_messages(request).await {
+
+        let room = match client.get_room(&room_id) {
+            Some(r) => r,
+            None => return,
+        };
+        let response = match room.messages(request).await {
             Ok(r) => r,
             Err(_) => return,
         };
@@ -79,7 +81,6 @@ pub fn fetch_old_messages(
                     }
                     AnyMessageEvent::Reaction(evt) => {
                         let relation = evt.content.relation;
-                        // TODO
                         tx.send(MatrixEvent::Reaction {
                             event_id: relation.event_id,
                             user_id: evt.sender,
@@ -162,7 +163,7 @@ impl MatrixBroker {
 impl matrix_sdk::EventHandler for MatrixBroker {
     async fn on_room_member(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         event: &SyncStateEvent<room::member::MemberEventContent>,
     ) {
         crate::log::info(format!("on room member {:?}", event).as_ref());
@@ -170,11 +171,11 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_room_name(
         &self,
-        room: matrix_sdk::RoomState,
+        room: matrix_sdk::room::Room,
         event: &SyncStateEvent<room::name::NameEventContent>,
     ) {
         crate::log::info(format!("on room name {:?}", event).as_ref());
-        if let matrix_sdk::RoomState::Joined(room) = room {
+        if let matrix_sdk::room::Room::Joined(room) = room {
             if let Ok(name) = room.display_name().await {
                 self.publish(MatrixEvent::RoomName {
                     id: room.room_id().clone(),
@@ -186,10 +187,10 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_room_message(
         &self,
-        room: matrix_sdk::RoomState,
+        room: matrix_sdk::room::Room,
         event: &SyncMessageEvent<room::message::MessageEventContent>,
     ) {
-        if let matrix_sdk::RoomState::Joined(room) = room {
+        if let matrix_sdk::room::Room::Joined(room) = room {
             self.publish(MatrixEvent::NewMessage {
                 event: event.clone().into_full_event(room.room_id().clone()),
             });
@@ -198,7 +199,7 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_room_message_feedback(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         event: &SyncMessageEvent<room::message::feedback::FeedbackEventContent>,
     ) {
         crate::log::info(format!("on room msg fb {:?}", event).as_ref());
@@ -206,10 +207,10 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_room_redaction(
         &self,
-        room_state: matrix_sdk::RoomState,
+        room_state: matrix_sdk::room::Room,
         event: &room::redaction::SyncRedactionEvent,
     ) {
-        use matrix_sdk::RoomState::*;
+        use matrix_sdk::room::Room::*;
         self.publish(MatrixEvent::Redaction {
             room_id: match room_state {
                 Joined(r) => r.room_id().clone(),
@@ -222,40 +223,40 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_room_power_levels(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::power_levels::PowerLevelsEventContent>,
     ) {
     }
 
     async fn on_room_join_rules(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::join_rules::JoinRulesEventContent>,
     ) {
     }
 
     async fn on_room_tombstone(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::tombstone::TombstoneEventContent>,
     ) {
     }
 
     async fn on_state_member(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::member::MemberEventContent>,
     ) {
     }
 
     async fn on_state_name(
         &self,
-        room: matrix_sdk::RoomState,
+        room: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::name::NameEventContent>,
     ) {
         // TODO test what happens if I get some history, might start using the older names
         // if so, just keep the time of the latest room name change and use that one
-        if let matrix_sdk::RoomState::Joined(room) = room {
+        if let matrix_sdk::room::Room::Joined(room) = room {
             if let Ok(name) = room.display_name().await {
                 self.publish(MatrixEvent::RoomName {
                     id: room.room_id().clone(),
@@ -267,42 +268,42 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_state_canonical_alias(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::canonical_alias::CanonicalAliasEventContent>,
     ) {
     }
 
     async fn on_state_aliases(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::aliases::AliasesEventContent>,
     ) {
     }
 
     async fn on_state_avatar(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::avatar::AvatarEventContent>,
     ) {
     }
 
     async fn on_state_power_levels(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::power_levels::PowerLevelsEventContent>,
     ) {
     }
 
     async fn on_state_join_rules(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncStateEvent<room::join_rules::JoinRulesEventContent>,
     ) {
     }
 
     async fn on_stripped_state_member(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         event: &StrippedStateEvent<room::member::MemberEventContent>,
         content: Option<room::member::MemberEventContent>,
     ) {
@@ -312,42 +313,42 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_stripped_state_name(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &StrippedStateEvent<room::name::NameEventContent>,
     ) {
     }
 
     async fn on_stripped_state_canonical_alias(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &StrippedStateEvent<room::canonical_alias::CanonicalAliasEventContent>,
     ) {
     }
 
     async fn on_stripped_state_aliases(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &StrippedStateEvent<room::aliases::AliasesEventContent>,
     ) {
     }
 
     async fn on_stripped_state_avatar(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &StrippedStateEvent<room::avatar::AvatarEventContent>,
     ) {
     }
 
     async fn on_stripped_state_power_levels(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &StrippedStateEvent<room::power_levels::PowerLevelsEventContent>,
     ) {
     }
 
     async fn on_stripped_state_join_rules(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         event: &StrippedStateEvent<room::join_rules::JoinRulesEventContent>,
     ) {
         crate::log::info(format!("on stripped state join rules {:?}", event).as_ref());
@@ -355,7 +356,7 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_non_room_presence(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         event: &presence::PresenceEvent,
     ) {
         crate::log::info(format!("on non room presence event {:?}", event).as_ref());
@@ -363,35 +364,35 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_non_room_ignored_users(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &BasicEvent<ignored_user_list::IgnoredUserListEventContent>,
     ) {
     }
 
     async fn on_non_room_push_rules(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &BasicEvent<push_rules::PushRulesEventContent>,
     ) {
     }
 
     async fn on_non_room_fully_read(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncEphemeralRoomEvent<fully_read::FullyReadEventContent>,
     ) {
     }
 
     async fn on_non_room_typing(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _: &SyncEphemeralRoomEvent<typing::TypingEventContent>,
     ) {
     }
 
     async fn on_non_room_receipt(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         _event: &SyncEphemeralRoomEvent<receipt::ReceiptEventContent>,
     ) {
     }
@@ -402,13 +403,17 @@ impl matrix_sdk::EventHandler for MatrixBroker {
 
     async fn on_unrecognized_event(
         &self,
-        _: matrix_sdk::RoomState,
+        _: matrix_sdk::room::Room,
         event: &exports::serde_json::value::RawValue,
     ) {
         crate::log::info(format!("on unrecognized {:?}", event).as_ref());
     }
 
-    async fn on_custom_event(&self, _: matrix_sdk::RoomState, event: &matrix_sdk::CustomEvent<'_>) {
+    async fn on_custom_event(
+        &self,
+        _: matrix_sdk::room::Room,
+        event: &matrix_sdk::CustomEvent<'_>,
+    ) {
         crate::log::info(format!("on custom event {:?}", event).as_ref());
     }
 }
