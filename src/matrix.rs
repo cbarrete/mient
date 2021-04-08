@@ -6,6 +6,26 @@ use matrix_sdk::{
 };
 
 use crate::{events::*, state::Room};
+
+pub fn send_read_receipt_current_room(client: matrix_sdk::Client, room: &Room) {
+    let last_id = room
+        .message_list
+        .messages
+        .back()
+        .map(|msg| msg.event.event_id.clone());
+    let room_id = room.id.clone();
+    if let Some(last_read_id) = last_id {
+        tokio::task::spawn(async move {
+            use matrix_sdk::api::r0::read_marker::set_read_marker::Request;
+            let mut request = Request::new(&room_id, &last_read_id);
+            request.read_receipt = Some(&last_read_id);
+            if let Err(e) = client.send(request, None).await {
+                crate::log::error(&format!("{:?}", e));
+            }
+        });
+    }
+}
+
 pub fn fetch_old_messages(
     room_id: RoomId,
     room: &mut crate::state::Room,

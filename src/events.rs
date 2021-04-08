@@ -61,6 +61,7 @@ fn handle_keyboard_event(
     match key {
         Key::Char('\n') => {
             if let Some(room) = state.current_room() {
+                crate::matrix::send_read_receipt_current_room(client.clone(), room);
                 if state.input.is_empty() {
                     return true;
                 }
