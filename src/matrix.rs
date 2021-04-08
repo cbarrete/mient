@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 
-use matrix_sdk::{events::*, identifiers::RoomId};
+use matrix_sdk::{
+    events::*,
+    identifiers::RoomId,
+};
 
-use crate::events::*;
-
+use crate::{events::*, state::Room};
 pub fn fetch_old_messages(
     room_id: RoomId,
     room: &mut crate::state::Room,
@@ -53,10 +55,7 @@ pub fn fetch_old_messages(
             match event {
                 AnyRoomEvent::Message(m) => match m {
                     AnyMessageEvent::RoomMessage(evt) => {
-                        tx.send(MatrixEvent::OldMessage {
-                            event: evt,
-                        })
-                        .unwrap();
+                        tx.send(MatrixEvent::OldMessage { event: evt }).unwrap();
                     }
                     AnyMessageEvent::Reaction(evt) => {
                         let relation = evt.content.relation;
@@ -172,7 +171,7 @@ impl matrix_sdk::EventHandler for MatrixBroker {
     ) {
         if let matrix_sdk::RoomState::Joined(room) = room {
             self.publish(MatrixEvent::NewMessage {
-                    event: event.clone().into_full_event(room.room_id().clone()),
+                event: event.clone().into_full_event(room.room_id().clone()),
             });
         }
     }
@@ -193,9 +192,9 @@ impl matrix_sdk::EventHandler for MatrixBroker {
         use matrix_sdk::RoomState::*;
         self.publish(MatrixEvent::Redaction {
             room_id: match room_state {
-                Joined(r) => { r.room_id().clone() }
-                Left(r) => { r.room_id().clone() }
-                Invited(r) => { r.room_id().clone() }
+                Joined(r) => r.room_id().clone(),
+                Left(r) => r.room_id().clone(),
+                Invited(r) => r.room_id().clone(),
             },
             redacted_id: event.redacts.clone(),
         });

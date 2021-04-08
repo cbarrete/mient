@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use matrix_sdk::{events::MessageEvent, identifiers::RoomId};
 use matrix_sdk::identifiers::UserId;
 use matrix_sdk::{events::room::message::MessageEventContent, identifiers::EventId};
+use matrix_sdk::{events::MessageEvent, identifiers::RoomId};
 
 use crate::events::MatrixEvent;
 

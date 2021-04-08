@@ -1,8 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use matrix_sdk::{events::MessageEvent, identifiers::{EventId, RoomId, UserId}};
 use matrix_sdk::events::room::message::MessageEventContent;
 use matrix_sdk::uuid::Uuid;
+use matrix_sdk::{
+    events::MessageEvent,
+    identifiers::{EventId, RoomId, UserId},
+};
 use termion::event::Key;
 
 use crate::state::Message;
@@ -80,8 +83,11 @@ fn handle_keyboard_event(
                         },
                     };
                     text_content.relates_to = Some(relates_to);
-                    text_content.body =
-                        crate::utils::format_reply_content(&msg.event.content, &msg.event.sender, &text);
+                    text_content.body = crate::utils::format_reply_content(
+                        &msg.event.content,
+                        &msg.event.sender,
+                        &text,
+                    );
                 };
 
                 let content = message::MessageEventContent::Text(text_content);
@@ -123,8 +129,8 @@ fn handle_keyboard_event(
         Key::End => state.change_current_message(crate::state::ListPosition::Last),
         Key::Delete => {
             let room = match state.current_room() {
-                Some(r) => {r},
-                None => {return true},
+                Some(r) => r,
+                None => return true,
             };
             let selected_message = room
                 .message_list
@@ -132,12 +138,12 @@ fn handle_keyboard_event(
                 .get(room.message_list.current_index)
                 .map(|m| m.clone());
             if let Some(msg) = selected_message {
-                use matrix_sdk::api::r0::redact::redact_event::Request;
                 let txn_id = Uuid::new_v4().to_string();
                 let client = client.clone();
                 let room_id = msg.event.room_id.clone();
                 let event_id = msg.event.event_id.clone();
                 tokio::task::spawn(async move {
+                    use matrix_sdk::api::r0::redact::redact_event::Request;
                     let request = Request::new(&room_id, &event_id, &txn_id);
                     if let Err(e) = client.send(request, None).await {
                         crate::log::error(&format!("{:?}", e));
@@ -171,12 +177,18 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
         },
         MatrixEvent::NewMessage { event } => {
             if let Some(room) = state.get_room_mut(&event.room_id) {
-                room.message_list.push_new(Message { redacted: false, event })
+                room.message_list.push_new(Message {
+                    redacted: false,
+                    event,
+                })
             }
         }
         MatrixEvent::OldMessage { event } => {
             if let Some(room) = state.get_room_mut(&event.room_id) {
-                room.message_list.push_old(Message { redacted: false, event })
+                room.message_list.push_old(Message {
+                    redacted: false,
+                    event,
+                })
             }
         }
         MatrixEvent::Notifications { id, count } => {
@@ -202,7 +214,10 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
                 .or_insert_with(|| HashSet::new())
                 .insert(user_id);
         }
-        MatrixEvent::Redaction{ room_id, redacted_id } => {
+        MatrixEvent::Redaction {
+            room_id,
+            redacted_id,
+        } => {
             if let Some(room) = state.rooms.iter_mut().find(|r| r.id == room_id) {
                 room.message_list
                     .messages
