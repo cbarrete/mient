@@ -37,6 +37,5 @@ Scrolling past the first message with `Up` or `Home` fetches older messages.
 - Read receipts
 - Better room list (consistent ordering)
 - Get initial state from the state store when it supports it again
-- Redactions
 - Media handler(s)
 - Notifications handler
