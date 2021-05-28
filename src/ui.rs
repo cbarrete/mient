@@ -125,9 +125,7 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
             .collect();
         let message_list = List::new(messages)
             .block(Block::default().borders(Borders::BOTTOM))
-            .highlight_style(
-                Style::default().bg(Color::DarkGray),
-            );
+            .highlight_style(Style::default().bg(Color::DarkGray));
         let mut message_list_state = ListState::default();
         message_list_state.select(state.current_room().map(|r| r.message_list.current_index));
         frame.render_stateful_widget(message_list, region, &mut message_list_state);
