@@ -28,7 +28,7 @@ pub fn format_reply_content(
     let quoted_replied = format_message_body(replied_to_content)
         .lines()
         // skip quoted content, those are previous replied_to
-        .skip_while(|s| s.starts_with(">"))
+        .skip_while(|s| s.starts_with('>'))
         .map(|s| format!("> {}", s))
         .collect::<Vec<String>>()
         .join("\n");
