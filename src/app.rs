@@ -1,4 +1,3 @@
-use matrix_sdk;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
@@ -75,14 +74,12 @@ fn spawn_input_task(
     tx: tokio::sync::mpsc::UnboundedSender<events::MientEvent>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
-        for event in std::io::stdin().keys() {
-            if let Ok(key) = event {
-                if let Err(_) = tx.send(events::MientEvent::Keyboard(key)) {
-                    return;
-                }
-                if key == termion::event::Key::Esc {
-                    return;
-                }
+        for key in std::io::stdin().keys().flatten() {
+            if key == termion::event::Key::Esc {
+                return;
+            }
+            if tx.send(events::MientEvent::Keyboard(key)).is_err() {
+                return;
             }
         }
     })
@@ -93,7 +90,7 @@ fn spawn_tick_task(
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
         loop {
-            if let Err(_) = tx.send(events::MientEvent::Tick) {
+            if tx.send(events::MientEvent::Tick).is_err() {
                 return;
             }
             std::thread::sleep(std::time::Duration::from_millis(100));

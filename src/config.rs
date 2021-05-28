@@ -40,7 +40,7 @@ impl MientConfig {
     }
 
     fn make(user_config: UserConfig) -> Result<Self, Box<dyn std::error::Error>> {
-        if user_config.password_cmd.len() < 1 {
+        if user_config.password_cmd.is_empty() {
             return Err(Box::new(MientConfigError {
                 message: String::from("Invalid password command"),
             }));

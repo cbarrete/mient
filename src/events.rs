@@ -71,7 +71,7 @@ fn handle_keyboard_event(
                     .message_list
                     .messages
                     .get(room.message_list.current_index)
-                    .map(|m| m.clone());
+                    .cloned();
 
                 let text: String = state.input.drain(..).collect();
                 let mut text_content = message::TextMessageEventContent::plain(text.clone());
@@ -140,12 +140,12 @@ fn handle_keyboard_event(
                 .message_list
                 .messages
                 .get(room.message_list.current_index)
-                .map(|m| m.clone());
+                .cloned();
             if let Some(msg) = selected_message {
                 let txn_id = Uuid::new_v4().to_string();
                 let client = client.clone();
                 let room_id = msg.event.room_id.clone();
-                let event_id = msg.event.event_id.clone();
+                let event_id = msg.event.event_id;
                 tokio::task::spawn(async move {
                     use matrix_sdk::api::r0::redact::redact_event::Request;
                     let request = Request::new(&room_id, &event_id, &txn_id);
