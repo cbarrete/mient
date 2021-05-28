@@ -23,7 +23,7 @@ pub fn format_message_body<'a>(content: &'a MessageEventContent) -> &'a str {
 pub fn format_reply_content(
     replied_to_content: &MessageEventContent,
     sender: &UserId,
-    reply: &String,
+    reply: &str,
 ) -> String {
     let quoted_replied = format_message_body(replied_to_content)
         .lines()
