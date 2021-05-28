@@ -213,9 +213,9 @@ pub async fn handle_matrix_event(event: MatrixEvent, state: &mut State) {
             state
                 .reactions
                 .entry(event_id)
-                .or_insert_with(|| HashMap::new())
+                .or_insert_with(HashMap::new)
                 .entry(emoji)
-                .or_insert_with(|| HashSet::new())
+                .or_insert_with(HashSet::new)
                 .insert(user_id);
         }
         MatrixEvent::Redaction {
