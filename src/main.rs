@@ -1,6 +1,7 @@
 mod app;
 mod config;
 mod crypto;
+mod cross_signing;
 mod events;
 mod log;
 mod matrix;
@@ -35,6 +36,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         [] => {
             login(&mient_config, &mut client).await?;
             app::tui(client).await?
+        }
+        ["--cross-sign"] => {
+            login(&mient_config, &mut client).await?;
+            cross_signing::cross_sign(&client, &mient_config.password).await?;
         }
         ["--import-keys", path, password] => {
             login(&mient_config, &mut client).await?;
