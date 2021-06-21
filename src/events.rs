@@ -78,11 +78,8 @@ fn handle_keyboard_event(
 
                 let mut relates_to = None;
                 if let Some(msg) = selected_message {
-                    use matrix_sdk::events::room::relationships;
                     let reply = message::Relation::Reply {
-                        in_reply_to: relationships::InReplyTo {
-                            event_id: msg.event.event_id.clone(),
-                        },
+                        in_reply_to: message::InReplyTo::new(msg.event.event_id.clone()),
                     };
                     relates_to = Some(reply);
                     text_content.body = crate::utils::format_reply_content(
@@ -101,9 +98,7 @@ fn handle_keyboard_event(
                 // TODO txn id for local echo
             }
         }
-        Key::Char(c) => {
-            state.input.push(c);
-        }
+        Key::Char(c) => state.input.push(c),
         Key::Backspace => {
             state.input.pop();
         }

@@ -1,4 +1,13 @@
-use matrix_sdk::events::AnyToDeviceEvent;
+use matrix_sdk::{
+    events::{
+        key::verification::{
+            key::KeyToDeviceEventContent, mac::MacToDeviceEventContent,
+            start::StartToDeviceEventContent,
+        },
+        AnyToDeviceEvent, ToDeviceEvent,
+    },
+    verification::Verification,
+};
 
 pub async fn verify_device(
     client: matrix_sdk::Client,
@@ -31,64 +40,19 @@ pub async fn verify_device(
             for event in response
                 .to_device
                 .events
+                .iter()
+                .filter_map(|e| e.deserialize().ok())
             {
                 dbg!(&event);
                 match event {
                     AnyToDeviceEvent::KeyVerificationStart(e) => {
-                        println!("Starting verification");
-                        client
-                            .get_verification(&e.content.transaction_id)
-                            .await
-                            .unwrap()
-                            .accept()
-                            .await
-                            .unwrap();
+                        start_verification(e, client).await;
                     }
                     AnyToDeviceEvent::KeyVerificationKey(e) => {
-                        let sas = client
-                            .get_verification(&e.content.transaction_id)
-                            .await
-                            .unwrap();
-                        println!("Emojis: {:?}", sas.emoji());
-                        println!("Decimals: {:?}", sas.decimals());
-                        println!("Do they match? (type yes if so) ");
-
-                        let mut input = String::new();
-                        std::io::stdin()
-                            .read_line(&mut input)
-                            .expect("error: unable to read user input");
-                        if input.trim() == "yes" {
-                            println!("Confirming...");
-                            sas.confirm().await.unwrap();
-                            if sas.is_done() {
-                                println!("Done!");
-                                return matrix_sdk::LoopCtrl::Break;
-                            }
-                        } else {
-                            println!("Aborting...");
-                            sas.cancel().await.unwrap();
-                        }
+                        verify_key(e, client).await;
                     }
                     AnyToDeviceEvent::KeyVerificationMac(e) => {
-                        println!("Key verification mac");
-                        let sas = client
-                            .get_verification(&e.content.transaction_id)
-                            .await
-                            .unwrap();
-                        if sas.is_done() {
-                            println!("Done! Feel free to terminate the program, the following events aren't handled yet");
-                        // return matrix_sdk::LoopCtrl::Break;
-                        } else {
-                            println!("notdone..?");
-                        }
-                    }
-                    AnyToDeviceEvent::KeyVerificationAccept(e) => {
-                        println!("Accept");
-                        let sas = client
-                            .get_verification(&e.content.transaction_id)
-                            .await
-                            .unwrap();
-                        sas.accept().await.unwrap();
+                        verify_mac(e, client).await;
                     }
                     AnyToDeviceEvent::KeyVerificationCancel(e) => {
                         println!("They cancelled: {}", e.content.reason);
@@ -109,4 +73,66 @@ pub async fn verify_device(
         println!("The device is still untrusted..?");
     }
     Ok(())
+}
+
+async fn verify_mac(e: ToDeviceEvent<MacToDeviceEventContent>, client: &matrix_sdk::Client) -> () {
+    println!("Key MAC verification");
+    if let Some(Verification::SasV1(sas)) = client
+        .get_verification(&e.sender, &e.content.transaction_id)
+        .await
+    {
+        if sas.is_done() {
+            println!(
+                "Done! Feel free to terminate the program, the following events aren't handled yet"
+            );
+        } else {
+            println!("notdone..?");
+        }
+    }
+}
+
+async fn verify_key(e: ToDeviceEvent<KeyToDeviceEventContent>, client: &matrix_sdk::Client) -> () {
+    if let Some(Verification::SasV1(sas)) = client
+        .get_verification(&e.sender, &e.content.transaction_id)
+        .await
+    {
+        println!("Emojis: {:?}", sas.emoji());
+        println!("Do they match? (type yes if so) ");
+
+        let mut input = String::new();
+        std::io::stdin()
+            .read_line(&mut input)
+            .expect("error: unable to read user input");
+        if input.trim() == "yes" {
+            println!("Confirming...");
+            sas.confirm().await.unwrap();
+            if sas.is_done() {
+                println!("Done!");
+            } else {
+                println!("Error: verification process is still not done but quitting");
+                // TODO if get here, only break if done
+            }
+        } else {
+            println!("Aborting...");
+            sas.cancel().await.unwrap();
+        }
+    }
+}
+
+async fn start_verification(
+    e: ToDeviceEvent<StartToDeviceEventContent>,
+    client: &matrix_sdk::Client,
+) -> () {
+    if let Some(Verification::SasV1(sas)) = client
+        .get_verification(&e.sender, &e.content.transaction_id)
+        .await
+    {
+        println!(
+            "Starting verification with {} {}",
+            &sas.other_device().user_id(),
+            &sas.other_device().device_id()
+        );
+        // print_devices(&e.sender, client).await;
+        sas.accept().await.unwrap();
+    }
 }

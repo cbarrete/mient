@@ -142,10 +142,12 @@ fn render_input<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<
 }
 
 pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::io::Result<()> {
-    terminal.draw(|f| {
-        let layout = make_layout(f.size());
-        render_room_list(&state, layout.rooms_region, f);
-        render_message_list(&state, layout.messages_region, f);
-        render_input(&state, layout.input_region, f);
-    })
+    terminal
+        .draw(|f| {
+            let layout = make_layout(f.size());
+            render_room_list(&state, layout.rooms_region, f);
+            render_message_list(&state, layout.messages_region, f);
+            render_input(&state, layout.input_region, f);
+        })
+        .and(Ok(()))
 }

@@ -80,7 +80,7 @@ pub fn fetch_old_messages(
                         tx.send(MatrixEvent::OldMessage { event: evt }).unwrap();
                     }
                     AnyMessageEvent::Reaction(evt) => {
-                        let relation = evt.content.relation;
+                        let relation = evt.content.relates_to;
                         tx.send(MatrixEvent::Reaction {
                             event_id: relation.event_id,
                             user_id: evt.sender,
@@ -117,11 +117,15 @@ impl MatrixBroker {
     }
 
     fn handle_timeline(&self, timeline: matrix_sdk::deserialized_responses::Timeline) {
-        for event in timeline.events {
+        for event in timeline
+            .events
+            .iter()
+            .filter_map(|e| e.event.deserialize().ok())
+        {
             match event {
                 AnySyncRoomEvent::Message(msg) => {
                     if let AnySyncMessageEvent::Reaction(evt) = msg {
-                        let relation = evt.content.relation;
+                        let relation = evt.content.relates_to;
                         self.publish(MatrixEvent::Reaction {
                             event_id: relation.event_id,
                             user_id: evt.sender,
@@ -148,13 +152,9 @@ impl MatrixBroker {
             self.handle_timeline(room.timeline);
         }
         for event in response.to_device.events {
-            self.handle_to_device(event);
+            crate::log::info(format!("{:?}", event).as_ref());
         }
         matrix_sdk::LoopCtrl::Continue
-    }
-
-    fn handle_to_device(&self, event: AnyToDeviceEvent) {
-        crate::log::info(format!("{:?}", event).as_ref());
     }
 }
 
@@ -166,6 +166,7 @@ impl matrix_sdk::EventHandler for MatrixBroker {
         _: matrix_sdk::room::Room,
         event: &SyncStateEvent<room::member::MemberEventContent>,
     ) {
+        // TODO as ref
         crate::log::info(format!("on room member {:?}", event).as_ref());
     }
 
@@ -360,27 +361,6 @@ impl matrix_sdk::EventHandler for MatrixBroker {
         event: &presence::PresenceEvent,
     ) {
         crate::log::info(format!("on non room presence event {:?}", event).as_ref());
-    }
-
-    async fn on_non_room_ignored_users(
-        &self,
-        _: matrix_sdk::room::Room,
-        _: &BasicEvent<ignored_user_list::IgnoredUserListEventContent>,
-    ) {
-    }
-
-    async fn on_non_room_push_rules(
-        &self,
-        _: matrix_sdk::room::Room,
-        _: &BasicEvent<push_rules::PushRulesEventContent>,
-    ) {
-    }
-
-    async fn on_non_room_fully_read(
-        &self,
-        _: matrix_sdk::room::Room,
-        _: &SyncEphemeralRoomEvent<fully_read::FullyReadEventContent>,
-    ) {
     }
 
     async fn on_non_room_typing(
