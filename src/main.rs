@@ -1,6 +1,5 @@
 mod app;
 mod config;
-mod crypto;
 mod cross_signing;
 mod events;
 mod log;
@@ -8,6 +7,7 @@ mod matrix;
 mod state;
 mod ui;
 mod utils;
+mod verification;
 
 use config::MientConfig;
 
@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         ["--verify", device] => {
             login(&mient_config, &mut client).await?;
-            crypto::verify_device(client, device).await?;
+            verification::verify_device(client, device).await?;
         }
         _ => usage(),
     }
