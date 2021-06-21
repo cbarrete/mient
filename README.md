@@ -30,7 +30,6 @@ Scrolling past the first message with `Up` or `Home` fetches older messages.
 - Manage access tokens and restore logins
 - Manage device ids
 - Respond to room key requests
-- Look into other TUI frameworks, especially https://github.com/Gyscos/Cursive
 - Custom message room widget
   - Timestamps
 - External editor
@@ -39,3 +38,4 @@ Scrolling past the first message with `Up` or `Home` fetches older messages.
 - Get initial state from the state store when it supports it again
 - Media handler(s)
 - Notifications handler
+- Handle SIGWINCH (and maybe drop tick task)
