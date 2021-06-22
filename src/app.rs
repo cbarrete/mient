@@ -28,7 +28,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     // EVENT LOOP
     spawn_matrix_sync_task(client.clone(), matrix::MatrixBroker::new(matrix_tx.clone()));
     let input_handle = spawn_input_task(mient_tx.clone());
-    spawn_tick_task(mient_tx.clone());
+    spawn_sigwinch_task(mient_tx.clone());
 
     let event_tx = matrix_tx.clone();
     loop {
@@ -85,15 +85,16 @@ fn spawn_input_task(
     })
 }
 
-fn spawn_tick_task(
+fn spawn_sigwinch_task(
     tx: tokio::sync::mpsc::UnboundedSender<events::MientEvent>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
-        loop {
-            if tx.send(events::MientEvent::Tick).is_err() {
+        use signal_hook::{consts::SIGWINCH, iterator::Signals};
+        let mut signals = Signals::new(&[SIGWINCH]).unwrap();
+        for _ in signals.forever() {
+            if let Err(_) = tx.send(events::MientEvent::WindowChange) {
                 return;
             }
-            std::thread::sleep(std::time::Duration::from_millis(100));
         }
     })
 }

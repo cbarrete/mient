@@ -49,7 +49,7 @@ pub enum MatrixEvent {
 #[derive(Debug)]
 pub enum MientEvent {
     Keyboard(Key),
-    Tick,
+    WindowChange,
 }
 
 fn handle_keyboard_event(
@@ -164,7 +164,7 @@ pub async fn handle_mient_event(
 ) -> bool {
     match event {
         MientEvent::Keyboard(key) => handle_keyboard_event(key, state, client, &tx),
-        MientEvent::Tick => true,
+        MientEvent::WindowChange => true,
     }
 }
 
