@@ -8,12 +8,14 @@ edition = "2018"
 url = "*"
 unicode-width = "*"
 signal-hook = "*"
+signal-hook-tokio = { version = "*", features = ["futures-v0_3"] }
 
 tui = "*"
 termion = "*"
 
 tokio = { version = "*", features = ["full"] }
 async-trait = "*"
+futures = "*"
 
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"

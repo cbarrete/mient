@@ -1,3 +1,6 @@
+use futures::stream::StreamExt;
+use matrix_sdk;
+use signal_hook_tokio::Signals;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
@@ -28,7 +31,18 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     // EVENT LOOP
     spawn_matrix_sync_task(client.clone(), matrix::MatrixBroker::new(matrix_tx.clone()));
     let input_handle = spawn_input_task(mient_tx.clone());
-    spawn_sigwinch_task(mient_tx.clone());
+
+    let sigwinch_signals = Signals::new(&[signal_hook::consts::SIGWINCH])?;
+    let sigwinch_handle = sigwinch_signals.handle();
+    let sigwinch_tx = mient_tx.clone();
+    tokio::task::spawn(async move {
+        let mut signals = sigwinch_signals.fuse();
+        while signals.next().await.is_some() {
+            if let Err(_) = sigwinch_tx.send(events::MientEvent::WindowChange) {
+                return;
+            }
+        }
+    });
 
     let event_tx = matrix_tx.clone();
     loop {
@@ -45,6 +59,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
         }
     }
 
+    sigwinch_handle.close();
     matrix_rx.close();
     mient_rx.close();
     let _ = tokio::join!(input_handle);
@@ -79,20 +94,6 @@ fn spawn_input_task(
                 return;
             }
             if tx.send(events::MientEvent::Keyboard(key)).is_err() {
-                return;
-            }
-        }
-    })
-}
-
-fn spawn_sigwinch_task(
-    tx: tokio::sync::mpsc::UnboundedSender<events::MientEvent>,
-) -> tokio::task::JoinHandle<()> {
-    tokio::task::spawn(async move {
-        use signal_hook::{consts::SIGWINCH, iterator::Signals};
-        let mut signals = Signals::new(&[SIGWINCH]).unwrap();
-        for _ in signals.forever() {
-            if let Err(_) = tx.send(events::MientEvent::WindowChange) {
                 return;
             }
         }
