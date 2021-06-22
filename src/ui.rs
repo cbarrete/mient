@@ -39,8 +39,11 @@ fn make_layout(terminal_size: Rect) -> MientLayout {
 }
 
 fn color_hash(user: &str) -> Style {
-    let first_letter = user.chars().next().unwrap() as u32;
-    let color = match first_letter & 0b11 {
+    let hash = user
+        .chars()
+        .take(2)
+        .fold(0b11, |hash, letter| hash & letter as u32);
+    let color = match hash {
         0 => Color::Cyan,
         1 => Color::Red,
         2 => Color::Blue,
