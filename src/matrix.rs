@@ -339,28 +339,6 @@ impl matrix_sdk::EventHandler for MatrixBroker {
         crate::log::info(&format!("on stripped state join rules {:?}", event));
     }
 
-    async fn on_non_room_presence(
-        &self,
-        _: matrix_sdk::room::Room,
-        event: &presence::PresenceEvent,
-    ) {
-        crate::log::info(&format!("on non room presence event {:?}", event));
-    }
-
-    async fn on_non_room_typing(
-        &self,
-        _: matrix_sdk::room::Room,
-        _: &SyncEphemeralRoomEvent<typing::TypingEventContent>,
-    ) {
-    }
-
-    async fn on_non_room_receipt(
-        &self,
-        _: matrix_sdk::room::Room,
-        _event: &SyncEphemeralRoomEvent<receipt::ReceiptEventContent>,
-    ) {
-    }
-
     async fn on_presence_event(&self, _event: &presence::PresenceEvent) {
         // crate::log::info(&format!("on presence event {:?}", event));
     }
