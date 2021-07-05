@@ -38,3 +38,4 @@ Scrolling past the first message with `Up` or `Home` fetches older messages.
 - Get initial state from the state store when it supports it again
 - Media handler(s)
 - Notifications handler
+- Widget-local renders
