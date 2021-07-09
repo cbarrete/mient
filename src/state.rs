@@ -64,6 +64,7 @@ impl Room {
 pub struct State {
     pub user_id: UserId,
     pub input: String,
+    pub layout: crate::ui::MientLayout,
     pub current_room_index: usize,
     pub users: HashMap<UserId, String>,
     pub rooms: Vec<Room>,
@@ -71,9 +72,10 @@ pub struct State {
 }
 
 impl State {
-    pub async fn from_client(
+    pub async fn new(
         client: matrix_sdk::Client,
         tx: tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
+        terminal_size: tui::layout::Rect,
     ) -> Self {
         let mut rooms = Vec::new();
         for room in client.joined_rooms() {
@@ -100,6 +102,7 @@ impl State {
         Self {
             input: String::new(),
             current_room_index: 0,
+            layout: crate::ui::make_layout(terminal_size),
             users: HashMap::new(),
             rooms,
             user_id: client.user_id().await.unwrap(),

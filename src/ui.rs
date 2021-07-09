@@ -14,13 +14,13 @@ use crate::state::Message;
 use crate::state::Room;
 use crate::state::State;
 
-struct MientLayout {
+pub struct MientLayout {
     rooms_region: Rect,
     messages_region: Rect,
     input_region: Rect,
 }
 
-fn make_layout(terminal_size: Rect) -> MientLayout {
+pub fn make_layout(terminal_size: Rect) -> MientLayout {
     let main_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Length(25), Constraint::Min(1)]) // TODO maybe configurable or resizable
@@ -104,7 +104,7 @@ fn format_room_name(room: &Room) -> tui::text::Text {
     }
 }
 
-fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
+fn render_room_list<T: Backend>(state: &State, frame: &mut tui::Frame<T>) {
     let mut rooms: Vec<ListItem> = Vec::with_capacity(state.rooms.len());
     for room in state.rooms.iter() {
         rooms.push(ListItem::new(format_room_name(&room)));
@@ -115,10 +115,10 @@ fn render_room_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Fr
         .highlight_symbol("*");
     let mut room_list_state = ListState::default();
     room_list_state.select(Some(state.current_room_index));
-    frame.render_stateful_widget(room_list, region, &mut room_list_state);
+    frame.render_stateful_widget(room_list, state.layout.rooms_region, &mut room_list_state);
 }
 
-fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
+fn render_message_list<T: Backend>(state: &State, frame: &mut tui::Frame<T>) {
     if let Some(room) = state.current_room() {
         let messages: Vec<ListItem> = room
             .message_list
@@ -131,12 +131,17 @@ fn render_message_list<T: Backend>(state: &State, region: Rect, frame: &mut tui:
             .highlight_style(Style::default().bg(Color::DarkGray));
         let mut message_list_state = ListState::default();
         message_list_state.select(state.current_room().map(|r| r.message_list.current_index));
-        frame.render_stateful_widget(message_list, region, &mut message_list_state);
+        frame.render_stateful_widget(
+            message_list,
+            state.layout.messages_region,
+            &mut message_list_state,
+        );
     }
 }
 
-fn render_input<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<T>) {
+fn render_input<T: Backend>(state: &State, frame: &mut tui::Frame<T>) {
     let is = state.input.width() as u16;
+    let region = state.layout.input_region;
     let rs = region.width;
     let input =
         Paragraph::new(state.input.as_ref()).scroll((0, if is + 1 > rs { is + 1 - rs } else { 0 }));
@@ -147,10 +152,10 @@ fn render_input<T: Backend>(state: &State, region: Rect, frame: &mut tui::Frame<
 pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::io::Result<()> {
     terminal
         .draw(|f| {
-            let layout = make_layout(f.size());
-            render_room_list(&state, layout.rooms_region, f);
-            render_message_list(&state, layout.messages_region, f);
-            render_input(&state, layout.input_region, f);
+            state.layout = make_layout(f.size());
+            render_room_list(&state, f);
+            render_message_list(&state, f);
+            render_input(&state, f);
         })
         .and(Ok(()))
 }

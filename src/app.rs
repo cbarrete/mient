@@ -19,14 +19,14 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
         .set_event_handler(Box::new(matrix::MatrixBroker::new(matrix_tx.clone())))
         .await;
 
-    // SETUP LOCAL STATE
-    let mut state = state::State::from_client(client.clone(), matrix_tx.clone()).await;
-
     // SETUP TERMINAL
     let stdout = std::io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
     let backend = tui::backend::TermionBackend::new(stdout);
     let mut terminal = tui::Terminal::new(backend)?;
+
+    // SETUP LOCAL STATE
+    let mut state = state::State::new(client.clone(), matrix_tx.clone(), terminal.size()?).await;
 
     // EVENT LOOP
     spawn_matrix_sync_task(client.clone(), matrix::MatrixBroker::new(matrix_tx.clone()));
