@@ -90,10 +90,10 @@ fn spawn_input_task(
 ) -> tokio::task::JoinHandle<()> {
     tokio::task::spawn(async move {
         for key in std::io::stdin().keys().flatten() {
-            if key == termion::event::Key::Esc {
+            if tx.send(events::MientEvent::Keyboard(key)).is_err() {
                 return;
             }
-            if tx.send(events::MientEvent::Keyboard(key)).is_err() {
+            if key == termion::event::Key::Esc {
                 return;
             }
         }
