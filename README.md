@@ -39,3 +39,4 @@ Scrolling past the first message with `Up` or `Home` fetches older messages.
 - Media handler(s)
 - Notifications handler
 - Widget-local renders
+- Faster startup time
