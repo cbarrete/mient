@@ -23,10 +23,10 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     let stdout = std::io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
     let backend = tui::backend::TermionBackend::new(stdout);
-    let mut terminal = tui::Terminal::new(backend)?;
+    let terminal = tui::Terminal::new(backend)?;
 
     // SETUP LOCAL STATE
-    let mut state = state::State::new(client.clone(), matrix_tx.clone(), terminal.size()?).await;
+    let mut state = state::State::new(client.clone(), matrix_tx.clone(), terminal).await;
 
     // EVENT LOOP
     spawn_matrix_sync_task(client.clone(), matrix::MatrixBroker::new(matrix_tx.clone()));
@@ -46,7 +46,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
 
     let event_tx = matrix_tx.clone();
     loop {
-        ui::draw(&mut terminal, &mut state)?;
+        ui::draw(&mut state)?;
         tokio::select! {
             event = mient_rx.recv() => {
                 if !events::handle_mient_event(event.unwrap(), &mut state, &mut client, &event_tx).await {
@@ -63,7 +63,7 @@ pub async fn tui(mut client: matrix_sdk::Client) -> Result<(), Box<dyn std::erro
     matrix_rx.close();
     mient_rx.close();
     let _ = tokio::join!(input_handle);
-    drop(terminal);
+    drop(state.terminal); // TODO try to remove?
 
     Ok(())
 }

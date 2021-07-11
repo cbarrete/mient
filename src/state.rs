@@ -1,8 +1,13 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::io::Stdout;
 
 use matrix_sdk::identifiers::UserId;
 use matrix_sdk::{events::room::message::MessageEventContent, identifiers::EventId};
 use matrix_sdk::{events::MessageEvent, identifiers::RoomId};
+use termion::raw::RawTerminal;
+use termion::screen::AlternateScreen;
+use tui::backend::TermionBackend;
+use tui::Terminal;
 
 use crate::events::MatrixEvent;
 
@@ -61,10 +66,13 @@ impl Room {
     }
 }
 
+pub type MientTerminal = Terminal<TermionBackend<AlternateScreen<RawTerminal<Stdout>>>>;
+
 pub struct State {
     pub user_id: UserId,
     pub input: String,
     pub layout: crate::ui::MientLayout,
+    pub terminal: MientTerminal,
     pub current_room_index: usize,
     pub users: HashMap<UserId, String>,
     pub rooms: Vec<Room>,
@@ -75,7 +83,7 @@ impl State {
     pub async fn new(
         client: matrix_sdk::Client,
         tx: tokio::sync::mpsc::UnboundedSender<MatrixEvent>,
-        terminal_size: tui::layout::Rect,
+        terminal: MientTerminal,
     ) -> Self {
         let mut rooms = Vec::new();
         for room in client.joined_rooms() {
@@ -99,10 +107,14 @@ impl State {
             );
             rooms.push(mient_room);
         }
+
+        let layout = crate::ui::make_layout(terminal.size().unwrap());
+
         Self {
             input: String::new(),
             current_room_index: 0,
-            layout: crate::ui::make_layout(terminal_size),
+            terminal,
+            layout,
             users: HashMap::new(),
             rooms,
             user_id: client.user_id().await.unwrap(),

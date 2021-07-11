@@ -1,3 +1,5 @@
+use std::intrinsics::transmute;
+
 use tui::style::Modifier;
 use tui::style::Style;
 use tui::text::Text;
@@ -5,12 +7,12 @@ use tui::{backend::Backend, text::Spans};
 use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
-    Terminal,
 };
 use tui::{style::Color, text::Span};
 use unicode_width::UnicodeWidthStr;
 
 use crate::state::Message;
+use crate::state::MientTerminal;
 use crate::state::Room;
 use crate::state::State;
 
@@ -149,13 +151,18 @@ fn render_input<T: Backend>(state: &State, frame: &mut tui::Frame<T>) {
     frame.set_cursor(region.x + state.input.width() as u16, region.y);
 }
 
-pub fn draw<T: Backend>(terminal: &mut Terminal<T>, state: &mut State) -> std::io::Result<()> {
-    terminal
-        .draw(|f| {
-            state.layout = make_layout(f.size());
-            render_room_list(&state, f);
-            render_message_list(&state, f);
-            render_input(&state, f);
-        })
-        .and(Ok(()))
+pub fn draw(state: &mut State) -> std::io::Result<()> {
+    state.layout = make_layout(state.terminal.size()?);
+    let terminal_ptr = &state.terminal as *const MientTerminal;
+    // pinky promise, I won't touch the terminal while rendering
+    unsafe {
+        let t: *mut MientTerminal = transmute(terminal_ptr);
+        t.as_mut().unwrap()
+    }
+    .draw(|f| {
+        render_room_list(&state, f);
+        render_message_list(&state, f);
+        render_input(&state, f);
+    })
+    .and(Ok(()))
 }
