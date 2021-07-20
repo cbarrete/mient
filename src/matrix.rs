@@ -1,6 +1,28 @@
 use async_trait::async_trait;
-
-use matrix_sdk::{events::*, identifiers::RoomId, room::Room};
+use matrix_sdk::{
+    room::Room,
+    ruma::{
+        events::{
+            presence::PresenceEvent,
+            reaction::ReactionEventContent,
+            room::{
+                aliases::AliasesEventContent,
+                avatar::AvatarEventContent,
+                canonical_alias::CanonicalAliasEventContent,
+                join_rules::JoinRulesEventContent,
+                member::MemberEventContent,
+                message::{feedback::FeedbackEventContent, MessageEventContent},
+                name::NameEventContent,
+                power_levels::PowerLevelsEventContent,
+                redaction::SyncRedactionEvent,
+                tombstone::TombstoneEventContent,
+            },
+            AnyMessageEvent, AnyRoomEvent, AnySyncMessageEvent, AnySyncRoomEvent,
+            StrippedStateEvent, SyncMessageEvent, SyncStateEvent,
+        },
+        RoomId, UInt,
+    },
+};
 
 use crate::{events::*, state};
 
@@ -13,7 +35,7 @@ pub fn send_read_receipt_current_room(client: matrix_sdk::Client, room: &state::
     let room_id = room.id.clone();
     if let Some(last_read_id) = last_id {
         tokio::task::spawn(async move {
-            use matrix_sdk::api::r0::read_marker::set_read_marker::Request;
+            use matrix_sdk::ruma::api::client::r0::read_marker::set_read_marker::Request;
             let mut request = Request::new(&room_id, &last_read_id);
             request.read_receipt = Some(&last_read_id);
             if let Err(e) = client.send(request, None).await {
@@ -44,11 +66,12 @@ pub fn fetch_old_messages(
         None => return,
     };
     tokio::task::spawn(async move {
-        let mut request = matrix_sdk::api::r0::message::get_message_events::Request::backward(
-            &room_id,
-            &prev_batch,
-        );
-        request.limit = matrix_sdk::UInt::new(50).unwrap();
+        let mut request =
+            matrix_sdk::ruma::api::client::r0::message::get_message_events::Request::backward(
+                &room_id,
+                &prev_batch,
+            );
+        request.limit = UInt::new(50).unwrap();
 
         let room = match client.get_room(&room_id) {
             Some(r) => r,
@@ -125,6 +148,7 @@ impl MatrixBroker {
             match event {
                 AnySyncRoomEvent::Message(msg) => {
                     if let AnySyncMessageEvent::Reaction(evt) = msg {
+                        // TODO check if still applicable
                         let relation = evt.content.relates_to;
                         self.publish(MatrixEvent::Reaction {
                             event_id: relation.event_id,
@@ -161,16 +185,12 @@ impl MatrixBroker {
 #[async_trait]
 #[allow(unused_must_use)]
 impl matrix_sdk::EventHandler for MatrixBroker {
-    async fn on_room_member(
-        &self,
-        _: Room,
-        event: &SyncStateEvent<room::member::MemberEventContent>,
-    ) {
+    async fn on_room_member(&self, _: Room, event: &SyncStateEvent<MemberEventContent>) {
         // TODO as ref
         crate::log::info(&format!("on room member {:?}", event));
     }
 
-    async fn on_room_name(&self, room: Room, event: &SyncStateEvent<room::name::NameEventContent>) {
+    async fn on_room_name(&self, room: Room, event: &SyncStateEvent<NameEventContent>) {
         crate::log::info(&format!("on room name {:?}", event));
         if let Room::Joined(room) = room {
             if let Ok(name) = room.display_name().await {
@@ -182,11 +202,7 @@ impl matrix_sdk::EventHandler for MatrixBroker {
         }
     }
 
-    async fn on_room_message(
-        &self,
-        room: Room,
-        event: &SyncMessageEvent<room::message::MessageEventContent>,
-    ) {
+    async fn on_room_message(&self, room: Room, event: &SyncMessageEvent<MessageEventContent>) {
         if let Room::Joined(room) = room {
             self.publish(MatrixEvent::NewMessage {
                 event: event.clone().into_full_event(room.room_id().clone()),
@@ -197,16 +213,21 @@ impl matrix_sdk::EventHandler for MatrixBroker {
     async fn on_room_message_feedback(
         &self,
         _: Room,
-        event: &SyncMessageEvent<room::message::feedback::FeedbackEventContent>,
+        event: &SyncMessageEvent<FeedbackEventContent>,
     ) {
         crate::log::info(&format!("on room msg fb {:?}", event));
     }
 
-    async fn on_room_redaction(
-        &self,
-        room_state: Room,
-        event: &room::redaction::SyncRedactionEvent,
-    ) {
+    // TODO never get in here? what is it for?
+    async fn on_room_reaction(&self, _: Room, event: &SyncMessageEvent<ReactionEventContent>) {
+        self.publish(MatrixEvent::Reaction {
+            event_id: event.content.relates_to.event_id.clone(),
+            user_id: event.sender.clone(),
+            emoji: event.content.relates_to.emoji.clone(),
+        });
+    }
+
+    async fn on_room_redaction(&self, room_state: Room, event: &SyncRedactionEvent) {
         use matrix_sdk::room::Room::*;
         self.publish(MatrixEvent::Redaction {
             room_id: match room_state {
@@ -218,31 +239,15 @@ impl matrix_sdk::EventHandler for MatrixBroker {
         });
     }
 
-    async fn on_room_power_levels(
-        &self,
-        _: Room,
-        _: &SyncStateEvent<room::power_levels::PowerLevelsEventContent>,
-    ) {
-    }
+    async fn on_room_power_levels(&self, _: Room, _: &SyncStateEvent<PowerLevelsEventContent>) {}
 
-    async fn on_room_join_rules(
-        &self,
-        _: Room,
-        _: &SyncStateEvent<room::join_rules::JoinRulesEventContent>,
-    ) {
-    }
+    async fn on_room_join_rules(&self, _: Room, _: &SyncStateEvent<JoinRulesEventContent>) {}
 
-    async fn on_room_tombstone(
-        &self,
-        _: Room,
-        _: &SyncStateEvent<room::tombstone::TombstoneEventContent>,
-    ) {
-    }
+    async fn on_room_tombstone(&self, _: Room, _: &SyncStateEvent<TombstoneEventContent>) {}
 
-    async fn on_state_member(&self, _: Room, _: &SyncStateEvent<room::member::MemberEventContent>) {
-    }
+    async fn on_state_member(&self, _: Room, _: &SyncStateEvent<MemberEventContent>) {}
 
-    async fn on_state_name(&self, room: Room, _: &SyncStateEvent<room::name::NameEventContent>) {
+    async fn on_state_name(&self, room: Room, _: &SyncStateEvent<NameEventContent>) {
         // TODO test what happens if I get some history, might start using the older names
         // if so, just keep the time of the latest room name change and use that one
         if let Room::Joined(room) = room {
@@ -258,96 +263,79 @@ impl matrix_sdk::EventHandler for MatrixBroker {
     async fn on_state_canonical_alias(
         &self,
         _: Room,
-        _: &SyncStateEvent<room::canonical_alias::CanonicalAliasEventContent>,
+        _: &SyncStateEvent<CanonicalAliasEventContent>,
     ) {
     }
 
-    async fn on_state_aliases(
-        &self,
-        _: Room,
-        _: &SyncStateEvent<room::aliases::AliasesEventContent>,
-    ) {
-    }
+    async fn on_state_aliases(&self, _: Room, _: &SyncStateEvent<AliasesEventContent>) {}
 
-    async fn on_state_avatar(&self, _: Room, _: &SyncStateEvent<room::avatar::AvatarEventContent>) {
-    }
+    async fn on_state_avatar(&self, _: Room, _: &SyncStateEvent<AvatarEventContent>) {}
 
-    async fn on_state_power_levels(
-        &self,
-        _: Room,
-        _: &SyncStateEvent<room::power_levels::PowerLevelsEventContent>,
-    ) {
-    }
+    async fn on_state_power_levels(&self, _: Room, _: &SyncStateEvent<PowerLevelsEventContent>) {}
 
-    async fn on_state_join_rules(
-        &self,
-        _: Room,
-        _: &SyncStateEvent<room::join_rules::JoinRulesEventContent>,
-    ) {
-    }
+    async fn on_state_join_rules(&self, _: Room, _: &SyncStateEvent<JoinRulesEventContent>) {}
 
     async fn on_stripped_state_member(
         &self,
         _: Room,
-        event: &StrippedStateEvent<room::member::MemberEventContent>,
-        content: Option<room::member::MemberEventContent>,
+        event: &StrippedStateEvent<MemberEventContent>,
+        content: Option<MemberEventContent>,
     ) {
         crate::log::info(&format!("on stripped state member {:?}", event));
         crate::log::info(&format!("content {:?}", content));
     }
 
-    async fn on_stripped_state_name(
-        &self,
-        _: Room,
-        _: &StrippedStateEvent<room::name::NameEventContent>,
-    ) {
-    }
+    async fn on_stripped_state_name(&self, _: Room, _: &StrippedStateEvent<NameEventContent>) {}
 
     async fn on_stripped_state_canonical_alias(
         &self,
         _: Room,
-        _: &StrippedStateEvent<room::canonical_alias::CanonicalAliasEventContent>,
+        _: &StrippedStateEvent<CanonicalAliasEventContent>,
     ) {
     }
 
     async fn on_stripped_state_aliases(
         &self,
         _: Room,
-        _: &StrippedStateEvent<room::aliases::AliasesEventContent>,
+        _: &StrippedStateEvent<AliasesEventContent>,
     ) {
     }
 
-    async fn on_stripped_state_avatar(
-        &self,
-        _: Room,
-        _: &StrippedStateEvent<room::avatar::AvatarEventContent>,
-    ) {
-    }
+    async fn on_stripped_state_avatar(&self, _: Room, _: &StrippedStateEvent<AvatarEventContent>) {}
 
     async fn on_stripped_state_power_levels(
         &self,
         _: Room,
-        _: &StrippedStateEvent<room::power_levels::PowerLevelsEventContent>,
+        _: &StrippedStateEvent<PowerLevelsEventContent>,
     ) {
     }
 
     async fn on_stripped_state_join_rules(
         &self,
         _: Room,
-        event: &StrippedStateEvent<room::join_rules::JoinRulesEventContent>,
+        event: &StrippedStateEvent<JoinRulesEventContent>,
     ) {
         crate::log::info(&format!("on stripped state join rules {:?}", event));
     }
 
-    async fn on_presence_event(&self, _event: &presence::PresenceEvent) {
+    async fn on_presence_event(&self, _event: &PresenceEvent) {
         // crate::log::info(&format!("on presence event {:?}", event));
     }
 
-    async fn on_unrecognized_event(&self, _: Room, event: &exports::serde_json::value::RawValue) {
+    async fn on_unrecognized_event(&self, _: Room, event: &serde_json::value::RawValue) {
         crate::log::info(&format!("on unrecognized {:?}", event));
     }
 
     async fn on_custom_event(&self, _: Room, event: &matrix_sdk::CustomEvent<'_>) {
         crate::log::info(&format!("on custom event {:?}", event));
     }
+
+    // TODO
+    // async fn on_room_call_invite(&self, _: matrix_sdk::room::Room, _: &SyncMessageEvent<call::invite::InviteEventContent>) {}
+    // async fn on_room_call_answer(&self, _: matrix_sdk::room::Room, _: &SyncMessageEvent<call::answer::AnswerEventContent>) {}
+    // async fn on_room_call_candidates(&self, _: matrix_sdk::room::Room, _: &SyncMessageEvent<call::candidates::CandidatesEventContent>) {}
+    // async fn on_room_call_hangup(&self, _: matrix_sdk::room::Room, _: &SyncMessageEvent<call::hangup::HangupEventContent>) {}
+
+    // TODO?
+    // async fn on_room_notification(&self, _: matrix_sdk::room::Room, _: matrix_sdk::api::r0::push::get_notifications::Notification) {}
 }

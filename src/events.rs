@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use matrix_sdk::events::room::message::MessageEventContent;
+use matrix_sdk::ruma::events::room::message::MessageEventContent;
+use matrix_sdk::ruma::events::MessageEvent;
+use matrix_sdk::ruma::EventId;
+use matrix_sdk::ruma::RoomId;
+use matrix_sdk::ruma::UserId;
 use matrix_sdk::uuid::Uuid;
-use matrix_sdk::{
-    events::MessageEvent,
-    identifiers::{EventId, RoomId, UserId},
-};
 use termion::event::Key;
 
 use crate::state::Message;
@@ -65,7 +65,7 @@ fn handle_keyboard_event(
                 if state.input.is_empty() {
                     return true;
                 }
-                use matrix_sdk::events::room::message;
+                use matrix_sdk::ruma::events::room::message;
                 let id = room.id.clone();
                 let selected_message = room
                     .message_list
@@ -89,10 +89,12 @@ fn handle_keyboard_event(
                     );
                 };
 
-                let content = matrix_sdk::events::room::message::MessageType::Text(text_content);
+                let content =
+                    matrix_sdk::ruma::events::room::message::MessageType::Text(text_content);
                 let mut content = message::MessageEventContent::new(content);
                 content.relates_to = relates_to;
-                let message = matrix_sdk::events::AnyMessageEventContent::RoomMessage(content);
+                let message =
+                    matrix_sdk::ruma::events::AnyMessageEventContent::RoomMessage(content);
                 let client = client.clone();
                 tokio::task::spawn(async move { client.room_send(&id, message, None).await });
                 // TODO txn id for local echo
@@ -142,7 +144,7 @@ fn handle_keyboard_event(
                 let room_id = msg.event.room_id.clone();
                 let event_id = msg.event.event_id;
                 tokio::task::spawn(async move {
-                    use matrix_sdk::api::r0::redact::redact_event::Request;
+                    use matrix_sdk::ruma::api::client::r0::redact::redact_event::Request;
                     let request = Request::new(&room_id, &event_id, &txn_id);
                     if let Err(e) = client.send(request, None).await {
                         crate::log::error(&format!("{:?}", e));

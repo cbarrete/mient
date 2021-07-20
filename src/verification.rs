@@ -1,5 +1,5 @@
 use matrix_sdk::{
-    events::{
+    ruma::events::{
         key::verification::{
             key::KeyToDeviceEventContent, mac::MacToDeviceEventContent,
             start::StartToDeviceEventContent,
@@ -23,7 +23,7 @@ pub async fn verify_device(
         }
         Some(d) => d,
     };
-    if device.is_trusted() {
+    if device.is_locally_trusted() {
         println!("This device is already trusted");
         return Ok(());
     }
@@ -67,7 +67,7 @@ pub async fn verify_device(
         })
         .await;
 
-    if device.is_trusted() {
+    if device.is_locally_trusted() {
         println!("Success!");
     } else {
         println!("The device is still untrusted..?");

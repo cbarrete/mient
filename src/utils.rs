@@ -1,6 +1,6 @@
-use matrix_sdk::{
+use matrix_sdk::ruma::{
     events::room::message::{MessageEventContent, MessageType},
-    identifiers::UserId,
+    UserId,
 };
 
 pub fn format_message_body<'a>(content: &'a MessageEventContent) -> &'a str {

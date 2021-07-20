@@ -3,7 +3,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use matrix_sdk::{api::r0::uiaa::AuthData, identifiers::UserId};
+use matrix_sdk::ruma::{api::client::r0::uiaa::AuthData, UserId};
 use serde_json::json;
 
 fn auth_data<'a>(user: &UserId, password: &str, session: Option<&'a str>) -> AuthData<'a> {
