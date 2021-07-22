@@ -7,7 +7,6 @@ use matrix_sdk::ruma::{api::client::r0::uiaa::AuthData, UserId};
 use serde_json::json;
 
 fn auth_data<'a>(user: &UserId, password: &str, session: Option<&'a str>) -> AuthData<'a> {
-    println!("ad");
     let mut auth_parameters = BTreeMap::new();
     let identifier = json!({
         "type": "m.id.user",
