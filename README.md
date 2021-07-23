@@ -27,6 +27,7 @@ Scrolling past the first message with `Up` or `Home` fetches older messages.
 
 ## TODO
 
+- remove all the event forwarding business?
 - Manage access tokens and restore logins
 - Manage device ids
 - Respond to room key requests
