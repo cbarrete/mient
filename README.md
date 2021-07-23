@@ -27,16 +27,18 @@ Scrolling past the first message with `Up` or `Home` fetches older messages.
 
 ## TODO
 
-- remove all the event forwarding business?
+- Remove all the event forwarding business?
 - Manage access tokens and restore logins
 - Manage device ids
 - Respond to room key requests
 - Custom message room widget
   - Timestamps
+  - Nice scrolling
 - External editor
 - Read receipts
 - Better room list (consistent ordering)
 - Get initial state from the state store when it supports it again
 - Media handler(s)
-- Notifications handler
+- External notifications handler
 - Faster startup time
+- Online key backup
